@@ -1,0 +1,3 @@
+loop_rate: 1000
+num_particles: 100
+percentage_resample_random_particles: 0.5

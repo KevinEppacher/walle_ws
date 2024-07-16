@@ -1,0 +1,75 @@
+<?xml version="1.0" ?>
+<launch>
+
+    <!-- Create gazebo world -->
+    <include file="$(find gazebo_ros)launch/empty_world.launch" >
+        <arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/turtlebot3_house.world"/>  
+        <arg name="headless" value="false" />
+        <arg name="gui" value="false" />
+        <arg name="use_sim_time" value="true" />
+        <arg name="paused" value="false" />
+        <arg name="debug" value="false" />
+    </include>
+    
+    <!-- Define robot description parameter using xacro to process the URDF file -->
+    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_burger.urdf.xacro"/>
+
+    <!-- Spawn URDF model in Gazebo -->
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model turtlebot3_burger -x 0.5 -y 0.5 -z 0.5 -Y 0 -param robot_description" />
+
+    <!-- Include the turtlebot3_remote.launch file -->
+    <include file="$(find turtlebot3_bringup)/launch/turtlebot3_remote.launch"/>
+
+    <!-- Start the map_server node to provide the map for localization -->
+    <node pkg="map_server" name="map_server" type="map_server" args="$(find amr_control)/maps/small_house_1.yaml"/>     
+
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find amr_control)/config/walle_rviz_config.rviz" />
+
+    <!-- Run the amcl node for adaptive Monte Carlo localization -->
+    <node pkg="amcl" type="amcl" name="amcl">
+    
+        <!-- AMCL parameters for particle filtering and sensor models -->
+        <param name="min_particles"             value="500"/>
+        <param name="max_particles"             value="3000"/>
+        <param name="kld_err"                   value="0.02"/>
+        <param name="update_min_d"              value="0.20"/>
+        <param name="update_min_a"              value="0.20"/>
+        <param name="resample_interval"         value="1"/>
+        <param name="transform_tolerance"       value="0.5"/>
+        <param name="recovery_alpha_slow"       value="0.00"/>
+        <param name="recovery_alpha_fast"       value="0.00"/>
+        <param name="initial_pose_x"            value="0.5"/>
+        <param name="initial_pose_y"            value="0.5"/>
+        <param name="initial_pose_a"            value="0"/>
+        <param name="gui_publish_rate"          value="50.0"/>
+
+        <!-- Remap scan topic -->
+        <remap from="scan"                      to="/scan"/>
+
+        <!-- Laser sensor model parameters -->
+        <param name="laser_max_range"           value="3.5"/>
+        <param name="laser_max_beams"           value="180"/>
+        <param name="laser_z_hit"               value="0.5"/>
+        <param name="laser_z_short"             value="0.05"/>
+        <param name="laser_z_max"               value="0.05"/>
+        <param name="laser_z_rand"              value="0.5"/>
+        <param name="laser_sigma_hit"           value="0.2"/>
+        <param name="laser_lambda_short"        value="0.1"/>
+        <param name="laser_likelihood_max_dist" value="2.0"/>
+        <param name="laser_model_type"          value="likelihood_field"/>
+
+        <!-- Odometry model parameters -->
+        <param name="odom_model_type"           value="diff"/>
+        <param name="odom_alpha1"               value="0.1"/>
+        <param name="odom_alpha2"               value="0.1"/>
+        <param name="odom_alpha3"               value="0.1"/>
+        <param name="odom_alpha4"               value="0.1"/>
+        <param name="odom_frame_id"             value="odom"/>
+        <param name="base_frame_id"             value="base_footprint"/>
+
+    </node>
+
+    <!-- <node name="main" pkg="amr_control" type="main" output="screen" /> -->
+    <rosparam file="$(find amr_control)/param/costmap_common_params_$(arg model).yaml" command="load" ns="global_costmap"/>
+    
+</launch>
