@@ -210,3 +210,25 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+############################################################
+# CMakelist for casadi_example node
+############################################################
+
+# Install Python scripts
+catkin_install_python(PROGRAMS
+  scripts/casadi_example.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+############################################################
+# CMakelist for optimal_control node
+############################################################
+
+# Install Python scripts
+catkin_install_python(PROGRAMS
+  scripts/optimal_control.py
+  scripts/model.py
+  scripts/controller.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)

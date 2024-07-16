@@ -36,12 +36,18 @@ RUN sudo apt-get install -y ros-noetic-dwa-local-planner
 RUN sudo apt-get install -y ros-noetic-gmapping
 
 RUN sudo apt-get install -y ros-noetic-turtlebot3* ros-noetic-turtlebot3 \
-    && echo "export TURTLEBOT3_MODEL=burger" >> ~/.bashrc
+    && echo "export TURTLEBOT3_MODEL=waffle" >> ~/.bashrc
 
 # Install Git
 RUN sudo apt update
 
 RUN sudo apt install -y git
+
+RUN sudo apt install -y python3 python3-pip
+
+RUN pip install asadi
+
+RUN pip install numpy scipy
 
 # Rosdep update
 RUN rosdep update

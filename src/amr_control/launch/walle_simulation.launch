@@ -15,7 +15,7 @@
     <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_burger.urdf.xacro"/>
 
     <!-- Spawn URDF model in Gazebo -->
-    <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model turtlebot3_burger -x 0.5 -y 0.5 -z 0.5 -Y 0 -param robot_description" />
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model turtlebot3_burger -x 0.5 -y 0.5 -z 0.0 -Y 0 -param robot_description" />
 
     <!-- Include the turtlebot3_remote.launch file -->
     <include file="$(find turtlebot3_bringup)/launch/turtlebot3_remote.launch"/>
