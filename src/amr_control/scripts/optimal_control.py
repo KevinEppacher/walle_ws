@@ -24,27 +24,11 @@ class Model:
         theta_next = uk[1] * T + xk[2]
         return ca.vertcat(x_next , y_next, theta_next)
 
-
-class Optimizer:
-    def __init__(self):
-        print("Optimizer initialized")
-        # Define optimization variables
-        opti = ca.Opti()
-        X = opti.variables(3, self.N+1)
-        U = opti.variables(2, self.N)
-
-        opti.subject_to(X[:,0] == self.x0)
-
-        for k in range(self.N):
-            xk = X[:,k]
-            xk_next = X[:,k+1]
-            uk = U[:,k]
-            opti.subject_to(xk_next == self.model.predict(uk, self.dt))
-
 class nMPC:
     def __init__(self, N, xRef, uRef, x0, S, Q, R, uMax, uMin, T=0.01):
         rospy.init_node('nmpc_node', anonymous=True)
-        self.publisher_ = rospy.Publisher('cmd_vel', Twist, queue_size=10)
+        self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=10)
+        self.pub_control_input = rospy.Publisher('control_input', Float32MultiArray, queue_size=10)
         self.subscription = rospy.Subscriber('odom', Odometry, self.odom_callback)
         print("Controller initialized")
 
@@ -73,8 +57,8 @@ class nMPC:
         self.timer = rospy.Timer(rospy.Duration(self.T), self.controller_loop)
         
         # # Der nächste Zustand und Steuerung
-        # self.next_states = np.ones((self.N+1, 3)) * init_pos
-        # self.u0 = np.zeros((self.N, 2))
+        self.next_states = np.ones((3, self.N+1))
+        self.u0 = np.zeros((2, self.N))
 
         self.setup_controller()
 
@@ -95,9 +79,6 @@ class nMPC:
         
         # Model equations
         model = Model()
-
-        # model.predict(self.opt_states, self.opt_controls, self.T)
-
         
         # Parameters, these parameters are the reference trajectories of the pose and inputs
         self.opt_x_ref = self.opti.parameter(3, self.N+1)
@@ -117,9 +98,39 @@ class nMPC:
             control_error = self.opt_controls[:,i] - self.opt_u_ref[:,i]           
             obj += ca.mtimes([state_error.T, self.Q, state_error]) + ca.mtimes([control_error.T, self.R, control_error])
         self.opti.minimize(obj)
-        print(obj)
-
-
+        
+        # Begrenzungen der Steuerungen
+        self.opti.subject_to(self.opti.bounded(self.uMin[0], self.v, self.uMax[0]))
+        self.opti.subject_to(self.opti.bounded(self.uMin[1], self.w, self.uMax[1]))
+        
+        # IPOPT-Optionen
+        opts = {
+            'ipopt.max_iter': 2000,
+            'ipopt.print_level': 0,
+            'print_time': 0,
+            'ipopt.acceptable_tol': 1e-8,
+            'ipopt.acceptable_obj_change_tol': 1e-6
+        }
+        
+        self.opti.solver('ipopt', opts)
+        
+    def solve(self, next_trajectories, next_controls):
+        # Setzen der Parameter
+        self.opti.set_value(self.opt_x_ref, next_trajectories.T)  # Transponieren der Trajektorien
+        self.opti.set_value(self.opt_u_ref, next_controls.T)      # Transponieren der Steuerungen
+    
+        # Anfangsschätzung für die Optimierungsziele
+        self.opti.set_initial(self.opt_states, self.next_states)
+        self.opti.set_initial(self.opt_controls, self.u0)
+        
+        # Problem lösen
+        sol = self.opti.solve()
+        
+        # Erhalten der Steuerungseingaben
+        self.u0 = sol.value(self.opt_controls)
+        self.next_states = sol.value(self.opt_states)
+        return self.u0[:,0]
+        
 
     def get_yaw_from_quaternion(self, quaternion):
         # Ensure the quaternion is normalized
@@ -146,16 +157,16 @@ class nMPC:
         self.model.theta = self.get_yaw_from_quaternion(quaternion)
 
     def controller_loop(self, event):
-        self.model.x = 0.0
-        self.model.y = 0.0
-        # opt = Optimizer()
-        # opt.solve()
         
-    def cost_function(self):
+        init_pos = [0, 0, 0]
+        # Beispielhafte Referenztrajektorien und Steuerungen
+        next_trajectories = np.tile(init_pos, (self.N+1, 1))
+        next_controls = np.zeros((self.N, 2))
+               
+        control_input =self.solve(next_trajectories, next_controls)
         
-
-        return 0
-
+        self.pub_control_input.publish(Float32MultiArray(data=control_input * 10e60))
+        print("Optimale Steuerungseingabe:", control_input)
 
 
 def main():
@@ -168,8 +179,8 @@ def main():
         # Reference trajectory
         xRef = np.zeros((N+1, 3))  # Reference states
         for i in range(N+1):
-            xRef[i, 0] = i * 0.1  # x reference position
-            xRef[i, 1] = 0.0  # y reference position
+            xRef[i, 0] = i * 10  # x reference position
+            xRef[i, 1] = i * 10 # y reference position
             xRef[i, 2] = 0.0  # theta reference angle
 
         # Reference control inputs
@@ -184,8 +195,8 @@ def main():
         S = np.diag([10.0, 10.0, 1.0])  # Terminal state weights
 
         # Constraints on control inputs
-        uMax = np.array([1.0, math.pi/4])  # Max linear and angular velocity
-        uMin = np.array([-1.0, -math.pi/4])  # Min linear and angular velocity
+        uMax = np.array([0.22, 0.22])  # Max linear and angular velocity
+        uMin = np.array([-0.22, -0.22])  # Min linear and angular velocity
 
         # Time step
         T = 0.1  # Time step for the controller
