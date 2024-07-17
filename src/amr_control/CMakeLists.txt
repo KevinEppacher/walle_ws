@@ -228,7 +228,5 @@ catkin_install_python(PROGRAMS
 # Install Python scripts
 catkin_install_python(PROGRAMS
   scripts/optimal_control.py
-  scripts/model.py
-  scripts/controller.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
