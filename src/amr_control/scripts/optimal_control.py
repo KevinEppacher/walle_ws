@@ -20,10 +20,26 @@ import math
 class Model:
     @staticmethod
     def predict(xk, uk, T):
+        T = T + 1
         x_next = uk[0] * ca.cos(xk[2]) * T + xk[0]
         y_next = uk[0] * ca.sin(xk[2]) * T + xk[1]
         theta_next = uk[1] * T + xk[2]
         return ca.vertcat(x_next , y_next, theta_next)
+    
+class Optimizer:
+    def __init__(self, N, Q, R, S, uMax, uMin, T):
+        self.N = N
+        self.Q = Q
+        self.R = R
+        self.S = S
+        self.uMax = uMax
+        self.uMin = uMin
+        self.T = T
+        
+    def setup(self, model, x_ref, u_ref):
+        self.opti = ca.Opti()
+        
+        
 
 class nMPC:
     def __init__(self, N, xRef, uRef, x0, S, Q, R, uMax, uMin, T=0.01):
@@ -32,7 +48,8 @@ class nMPC:
         self.pub_control_input = rospy.Publisher('control_input', Float32MultiArray, queue_size=10)
         self.subscription = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.pose_callback)
         # Marker Publisher
-        self.publisher = rospy.Publisher('/pose_markers', MarkerArray, queue_size=10)        
+        self.pub_ref_traj = rospy.Publisher('/pose_markers', MarkerArray, queue_size=10)
+        self.pub_pred_traj = rospy.Publisher('/predicted_markers', MarkerArray, queue_size=10)     
         
         print("Controller initialized")
 
@@ -124,7 +141,6 @@ class nMPC:
         self.opti.set_value(self.opt_x_ref, next_trajectories.T)  # Transponieren der Trajektorien
         self.opti.set_value(self.opt_u_ref, next_controls.T)      # Transponieren der Steuerungen
         
-        print("Current pose:", self.current_pose)
         # Setzen der Anfangsbedingung für die Zustände
         self.opti.set_initial(self.opt_states[:, 0], self.current_pose)
             
@@ -140,8 +156,10 @@ class nMPC:
         
         # self.next_states = sol.value(self.opt_states)
         
-        predicted_states = [Model.predict(self.next_states[:, i], self.u0[:, i], self.T) for i in range(self.N)]
+        predicted_states = [sol.value(self.opt_states[:, i]) for i in range(self.N+1)]
 
+        self.publish_marker_predicted_states(predicted_states)
+        
         # self.debug_print(next_trajectories.T, next_controls.T, predicted_states)
         
         return self.u0[:,0]
@@ -177,7 +195,7 @@ class nMPC:
         
     def publish_marker_trajectories(self, positions):
         marker_array = MarkerArray()
-        
+                
         for i, pos in enumerate(positions):
             marker = Marker()
             marker.header.frame_id = "map"
@@ -195,8 +213,8 @@ class nMPC:
             marker.pose.orientation.z = quaternion[2]
             marker.pose.orientation.w = quaternion[3]
             marker.scale.x = 0.25  # Länge des Pfeils
-            marker.scale.y = 0.05  # Breite des Pfeils
-            marker.scale.z = 0.05  # Höhe des Pfeils
+            marker.scale.y = 0.025  # Breite des Pfeils
+            marker.scale.z = 0.025  # Höhe des Pfeils
             marker.color.a = 1.0
             marker.color.r = 0.0
             marker.color.g = 1.0
@@ -204,7 +222,38 @@ class nMPC:
 
             marker_array.markers.append(marker)
             
-            self.publisher.publish(marker_array)
+            self.pub_ref_traj.publish(marker_array)
+            
+    def publish_marker_predicted_states(self, positions):
+        marker_array = MarkerArray()
+                            
+        for i, pos in enumerate(positions):
+            marker = Marker()
+            marker.header.frame_id = "map"
+            marker.header.stamp = rospy.Time.now()
+            marker.ns = "predicted_trajectory"
+            marker.id = i
+            marker.type = Marker.ARROW
+            marker.action = Marker.ADD
+            marker.pose.position.x = pos[0]
+            marker.pose.position.y = pos[1]
+            marker.pose.position.z = 0.0
+            quaternion = tf.transformations.quaternion_from_euler(0, 0, pos[2])
+            marker.pose.orientation.x = quaternion[0]
+            marker.pose.orientation.y = quaternion[1]
+            marker.pose.orientation.z = quaternion[2]
+            marker.pose.orientation.w = quaternion[3]
+            marker.scale.x = 0.25  # Länge des Pfeils
+            marker.scale.y = 0.05  # Breite des Pfeils
+            marker.scale.z = 0.05  # Höhe des Pfeils
+            marker.color.a = 1.0
+            marker.color.r = 1.0
+            marker.color.g = 0.0
+            marker.color.b = 0.0
+            
+            marker_array.markers.append(marker)
+        
+            self.pub_pred_traj.publish(marker_array)
             
     def compute_straight_trajectory(self, start_pos, end_pos, num_points):
         return np.linspace(start_pos, end_pos, num_points)
@@ -212,7 +261,7 @@ class nMPC:
     def controller_loop(self, event):
         
         init_pose = self.current_pose
-        end_pose = [2.0, 0.5, 0.0]
+        end_pose = [-2.0, 0.5, 0.0]
 
         # Beispielhafte Referenztrajektorien und Steuerungen
         next_trajectories = np.tile(init_pose, (self.N+1, 1))
