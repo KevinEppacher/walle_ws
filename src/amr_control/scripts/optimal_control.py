@@ -3,12 +3,13 @@
 # ROS1 imports
 import rospy
 from std_msgs.msg import String
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, Point
 from sensor_msgs.msg import LaserScan
 from std_msgs.msg import Float32MultiArray  # Assuming you need multiple floats for position
 from nav_msgs.msg import Odometry  # Import Odometry message type
 from tf.transformations import euler_from_quaternion
-
+import tf.transformations
+from visualization_msgs.msg import Marker, MarkerArray
 # Casadi imports
 import casadi as ca
 from casadi.tools import *
@@ -30,6 +31,9 @@ class nMPC:
         self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=10)
         self.pub_control_input = rospy.Publisher('control_input', Float32MultiArray, queue_size=10)
         self.subscription = rospy.Subscriber('odom', Odometry, self.odom_callback)
+        # Marker Publisher
+        self.publisher = rospy.Publisher('/pose_markers', MarkerArray, queue_size=10)        
+        
         print("Controller initialized")
 
         # Time step
@@ -155,17 +159,58 @@ class nMPC:
         self.model.x = msg.pose.pose.position.x
         self.model.y = msg.pose.pose.position.y
         self.model.theta = self.get_yaw_from_quaternion(quaternion)
+        
+    def publish_marker_trajectories(self, positions):
+        marker_array = MarkerArray()
+        
+        for i, pos in enumerate(positions):
+            marker = Marker()
+            marker.header.frame_id = "map"
+            marker.header.stamp = rospy.Time.now()
+            marker.ns = "reference_trajectory"
+            marker.id = i
+            marker.type = Marker.ARROW
+            marker.action = Marker.ADD
+            marker.pose.position.x = pos[0]
+            marker.pose.position.y = pos[1]
+            marker.pose.position.z = 0.0
+            quaternion = tf.transformations.quaternion_from_euler(0, 0, pos[2])
+            marker.pose.orientation.x = quaternion[0]
+            marker.pose.orientation.y = quaternion[1]
+            marker.pose.orientation.z = quaternion[2]
+            marker.pose.orientation.w = quaternion[3]
+            marker.scale.x = 0.25  # Länge des Pfeils
+            marker.scale.y = 0.05  # Breite des Pfeils
+            marker.scale.z = 0.05  # Höhe des Pfeils
+            marker.color.a = 1.0
+            marker.color.r = 0.0
+            marker.color.g = 1.0
+            marker.color.b = 0.0
+
+            marker_array.markers.append(marker)
+            
+            self.publisher.publish(marker_array)
+            
+    def compute_straight_trajectory(self, start_pos, end_pos, num_points):
+        return np.linspace(start_pos, end_pos, num_points)
 
     def controller_loop(self, event):
         
-        init_pos = [0, 0, 0]
+        init_pose = [0, 0, 0]
+        end_pose = [0, 0, np.pi/2]
+
         # Beispielhafte Referenztrajektorien und Steuerungen
-        next_trajectories = np.tile(init_pos, (self.N+1, 1))
+        next_trajectories = np.tile(init_pose, (self.N+1, 1))
+        
+        next_trajectories = self.compute_straight_trajectory(init_pose, end_pose, self.N+1)
+                
+        self.publish_marker_trajectories(next_trajectories)
+
         next_controls = np.zeros((self.N, 2))
                
         control_input =self.solve(next_trajectories, next_controls)
         
-        self.pub_control_input.publish(Float32MultiArray(data=control_input * 10e60))
+        self.pub_control_input.publish(Float32MultiArray(data=control_input))
         print("Optimale Steuerungseingabe:", control_input)
 
 
@@ -179,8 +224,8 @@ def main():
         # Reference trajectory
         xRef = np.zeros((N+1, 3))  # Reference states
         for i in range(N+1):
-            xRef[i, 0] = i * 10  # x reference position
-            xRef[i, 1] = i * 10 # y reference position
+            xRef[i, 0] = i * 1  # x reference position
+            xRef[i, 1] = i * 1 # y reference position
             xRef[i, 2] = 0.0  # theta reference angle
 
         # Reference control inputs
