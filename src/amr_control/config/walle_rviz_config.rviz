@@ -184,7 +184,7 @@ Visualization Manager:
       Marker Topic: /pose_markers
       Name: MarkerArray
       Namespaces:
-        poses: true
+        reference_trajectory: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -214,26 +214,20 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Class: rviz/Orbit
-      Distance: 8.174903869628906
+      Angle: 0
+      Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
-      Field of View: 0.7853981852531433
-      Focal Point:
-        X: 0.505827009677887
-        Y: 2.2032508850097656
-        Z: -3.0064847469329834
-      Focal Shape Fixed Size: true
-      Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.0203980207443237
+      Scale: 389.06512451171875
       Target Frame: <Fixed Frame>
-      Yaw: 4.833587646484375
+      X: 0.020457133650779724
+      Y: 0.4780455529689789
     Saved: ~
 Window Geometry:
   Displays:

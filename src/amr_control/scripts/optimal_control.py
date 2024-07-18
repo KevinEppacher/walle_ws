@@ -56,7 +56,6 @@ class nMPC:
         self.uRef = uRef
         # Initial state
         self.x0 = x0
-        print("x0:", self.x0.reshape(3, 1))
 
         # Timer setup after all variables are initialized
         self.timer = rospy.Timer(rospy.Duration(self.T), self.controller_loop)
@@ -64,7 +63,6 @@ class nMPC:
         # # Der nächste Zustand und Steuerung
         self.next_states = np.ones((3, self.N+1))
         self.next_states = self.next_states * self.x0.reshape(3, 1)
-        print(self.next_states)
         self.u0 = np.zeros((2, self.N))
 
         self.setup_controller()
@@ -125,7 +123,11 @@ class nMPC:
         # Setzen der Parameter
         self.opti.set_value(self.opt_x_ref, next_trajectories.T)  # Transponieren der Trajektorien
         self.opti.set_value(self.opt_u_ref, next_controls.T)      # Transponieren der Steuerungen
-    
+        
+        print("Current pose:", self.current_pose)
+        # Setzen der Anfangsbedingung für die Zustände
+        self.opti.set_initial(self.opt_states[:, 0], self.current_pose)
+            
         # Anfangsschätzung für die Optimierungsziele
         self.opti.set_initial(self.opt_states, self.next_states)
         self.opti.set_initial(self.opt_controls, self.u0)
@@ -136,9 +138,10 @@ class nMPC:
         # Erhalten der Steuerungseingaben
         self.u0 = sol.value(self.opt_controls)
         
-        self.next_states = sol.value(self.opt_states)
+        # self.next_states = sol.value(self.opt_states)
         
         predicted_states = [Model.predict(self.next_states[:, i], self.u0[:, i], self.T) for i in range(self.N)]
+
         # self.debug_print(next_trajectories.T, next_controls.T, predicted_states)
         
         return self.u0[:,0]
@@ -209,8 +212,7 @@ class nMPC:
     def controller_loop(self, event):
         
         init_pose = self.current_pose
-        # init_pose = [self.current_pose[0], self.current_pose[1], self.current_pose[2]]
-        end_pose = [0.0, 0.0, np.pi/2]
+        end_pose = [2.0, 0.5, 0.0]
 
         # Beispielhafte Referenztrajektorien und Steuerungen
         next_trajectories = np.tile(init_pose, (self.N+1, 1))
@@ -221,7 +223,9 @@ class nMPC:
 
         next_controls = np.zeros((self.N, 2))
                
-        control_input =self.solve(next_trajectories, next_controls)
+        control_input = self.solve(next_trajectories, next_controls)
+        
+        self.pub_cmd_vel.publish(Twist(linear=Point(x=control_input[0], y=0.0, z=0.0), angular=Point(x=0.0, y=0.0, z=control_input[1])))
         
         self.pub_control_input.publish(Float32MultiArray(data=control_input))
         print("Optimale Steuerungseingabe:", control_input)
@@ -229,7 +233,7 @@ class nMPC:
 
 def main():
     try:
-        N = 10  # Prediction horizon
+        N = 100  # Prediction horizon
 
         # Initial state
         x0 = np.array([0.5, 0.5, 0.0])  # Initial state (x, y, theta)
@@ -244,7 +248,7 @@ def main():
         # Reference control inputs
         uRef = np.zeros((N, 2))  # Reference controls
         for i in range(N):
-            uRef[i, 0] = 0.1  # Linear velocity reference
+            uRef[i, 0] = 1  # Linear velocity reference
             uRef[i, 1] = 0.0  # Angular velocity reference
 
         # Weight matrices for states and controls
