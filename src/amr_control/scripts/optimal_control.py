@@ -3,7 +3,7 @@
 # ROS1 imports
 import rospy
 from std_msgs.msg import String
-from geometry_msgs.msg import Twist, Point
+from geometry_msgs.msg import Twist, Point, PoseWithCovarianceStamped
 from sensor_msgs.msg import LaserScan
 from std_msgs.msg import Float32MultiArray  # Assuming you need multiple floats for position
 from nav_msgs.msg import Odometry  # Import Odometry message type
@@ -30,7 +30,7 @@ class nMPC:
         rospy.init_node('nmpc_node', anonymous=True)
         self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=10)
         self.pub_control_input = rospy.Publisher('control_input', Float32MultiArray, queue_size=10)
-        self.subscription = rospy.Subscriber('odom', Odometry, self.odom_callback)
+        self.subscription = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.pose_callback)
         # Marker Publisher
         self.publisher = rospy.Publisher('/pose_markers', MarkerArray, queue_size=10)        
         
@@ -56,12 +56,15 @@ class nMPC:
         self.uRef = uRef
         # Initial state
         self.x0 = x0
+        print("x0:", self.x0.reshape(3, 1))
 
         # Timer setup after all variables are initialized
         self.timer = rospy.Timer(rospy.Duration(self.T), self.controller_loop)
         
         # # Der nächste Zustand und Steuerung
         self.next_states = np.ones((3, self.N+1))
+        self.next_states = self.next_states * self.x0.reshape(3, 1)
+        print(self.next_states)
         self.u0 = np.zeros((2, self.N))
 
         self.setup_controller()
@@ -132,9 +135,26 @@ class nMPC:
         
         # Erhalten der Steuerungseingaben
         self.u0 = sol.value(self.opt_controls)
+        
         self.next_states = sol.value(self.opt_states)
+        
+        predicted_states = [Model.predict(self.next_states[:, i], self.u0[:, i], self.T) for i in range(self.N)]
+        # self.debug_print(next_trajectories.T, next_controls.T, predicted_states)
+        
         return self.u0[:,0]
         
+    def debug_print(self, next_trajectories, next_controls, predicted_states):
+        print("\n--- Debugging Information ---")
+        print("Referenz-Pose des Roboters bis N:")
+        print(next_trajectories)
+        print("\nDerzeitige Pose des Roboters:")
+        print(self.next_states)
+        print("\nReferenz-Steuerung u des Roboters bis N:")
+        print(next_controls)
+        print("\nVorhergesagte Zustände vom Modell bis N:")
+        for i, state in enumerate(predicted_states):
+            print(f"Schritt {i + 1}: {state}")
+        print("--- End of Debugging Information ---\n")
 
     def get_yaw_from_quaternion(self, quaternion):
         # Ensure the quaternion is normalized
@@ -146,19 +166,11 @@ class nMPC:
         
         return yaw
 
-    def odom_callback(self, msg):
-        # Extract quaternion from the message
-        quaternion = (
-            msg.pose.pose.orientation.x,
-            msg.pose.pose.orientation.y,
-            msg.pose.pose.orientation.z,
-            msg.pose.pose.orientation.w
-        )
-        
-        # Extract position and orientation from the odometry message
-        self.model.x = msg.pose.pose.position.x
-        self.model.y = msg.pose.pose.position.y
-        self.model.theta = self.get_yaw_from_quaternion(quaternion)
+    def pose_callback(self, msg):
+        position = msg.pose.pose.position
+        orientation = msg.pose.pose.orientation
+        yaw = self.get_yaw_from_quaternion([orientation.x, orientation.y, orientation.z, orientation.w])
+        self.current_pose = np.array([position.x, position.y, yaw])
         
     def publish_marker_trajectories(self, positions):
         marker_array = MarkerArray()
@@ -196,8 +208,9 @@ class nMPC:
 
     def controller_loop(self, event):
         
-        init_pose = [0, 0, 0]
-        end_pose = [0, 0, np.pi/2]
+        init_pose = self.current_pose
+        # init_pose = [self.current_pose[0], self.current_pose[1], self.current_pose[2]]
+        end_pose = [0.0, 0.0, np.pi/2]
 
         # Beispielhafte Referenztrajektorien und Steuerungen
         next_trajectories = np.tile(init_pose, (self.N+1, 1))
@@ -219,7 +232,7 @@ def main():
         N = 10  # Prediction horizon
 
         # Initial state
-        x0 = np.array([0.0, 0.0, 0.0])  # Initial state (x, y, theta)
+        x0 = np.array([0.5, 0.5, 0.0])  # Initial state (x, y, theta)
 
         # Reference trajectory
         xRef = np.zeros((N+1, 3))  # Reference states
