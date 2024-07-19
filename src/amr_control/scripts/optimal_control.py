@@ -170,9 +170,9 @@ class nMPC:
             obj += ca.mtimes([state_error.T, self.Q, state_error]) + ca.mtimes([control_error.T, self.R, control_error])
         self.opti.minimize(obj)
         
-        # # Begrenzungen der Steuerungen
-        # self.opti.subject_to(self.opti.bounded(self.uMin[0], self.v, self.uMax[0]))
-        # self.opti.subject_to(self.opti.bounded(self.uMin[1], self.w, self.uMax[1]))
+        # Begrenzungen der Steuerungen
+        self.opti.subject_to(self.opti.bounded(self.uMin[0], self.v, self.uMax[0]))
+        self.opti.subject_to(self.opti.bounded(self.uMin[1], self.w, self.uMax[1]))
         
         # IPOPT-Optionen
         opts = {
@@ -187,8 +187,8 @@ class nMPC:
         
     def solve(self, next_trajectories, next_controls):
         # Setzen der Parameter
-        self.opti.set_value(self.opt_x_ref, next_trajectories.T)  # Transponieren der Trajektorien
-        self.opti.set_value(self.opt_u_ref, next_controls.T)      # Transponieren der Steuerungen
+        self.opti.set_value(self.opt_x_ref, next_trajectories.T)
+        self.opti.set_value(self.opt_u_ref, next_controls.T)
         
         # Setzen der Anfangsbedingung für die Zustände
         self.opti.set_initial(self.opt_states[:, 0], self.current_pose)
@@ -301,8 +301,10 @@ class nMPC:
     def controller_loop(self, event):
         
         init_pose = self.current_pose
-        # init_pose = [-2.0, 0.5, 0.0]
-        end_pose = [-2.0, 0.5, 0.0]
+        # init_pose = [2.0, 0.5, 0.0]
+
+        # init_pose = [1.0, 0.5, 0.0]
+        end_pose = [3.0, 0.5, 0.0]
 
         # Beispielhafte Referenztrajektorien und Steuerungen
         next_trajectories = np.tile(init_pose, (self.N+1, 1))
@@ -318,12 +320,13 @@ class nMPC:
         self.pub_cmd_vel.publish(Twist(linear=Point(x=control_input[0], y=0.0, z=0.0), angular=Point(x=0.0, y=0.0, z=control_input[1])))
         
         self.pub_control_input.publish(Float32MultiArray(data=control_input))
-        print("Optimale Steuerungseingabe:", control_input)
+        rospy.loginfo("Optimale Steuerungseingabe: %s", control_input)
+        # print("Optimale Steuerungseingabe:", control_input)
 
 
 def main():
     try:
-        N = 100  # Prediction horizon
+        N = 10  # Prediction horizon
 
         # Initial state
         x0 = np.array([0.5, 0.5, 0.0])  # Initial state (x, y, theta)
@@ -342,8 +345,8 @@ def main():
             uRef[i, 1] = 0.0  # Angular velocity reference
 
         # Weight matrices for states and controls
-        Q = np.diag([10.0, 10.0, 1.0])  # State error weights
-        R = np.diag([1.0, 1.0])  # Control effort weights
+        Q = np.diag([100000.0, 100000.0, 10000])  # State error weights
+        R = np.diag([0.1, 0.1])  # Control effort weights
         S = np.diag([10.0, 10.0, 1.0])  # Terminal state weights
 
         # Constraints on control inputs
