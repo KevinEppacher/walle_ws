@@ -3,7 +3,7 @@
 # ROS1 imports
 import rospy
 from std_msgs.msg import String
-from geometry_msgs.msg import Twist, Point, PoseWithCovarianceStamped
+from geometry_msgs.msg import Twist, Point, PoseWithCovarianceStamped, PoseArray, Pose
 from sensor_msgs.msg import LaserScan
 from std_msgs.msg import Float32MultiArray  # Assuming you need multiple floats for position
 from nav_msgs.msg import Odometry  # Import Odometry message type
@@ -37,7 +37,56 @@ class Optimizer:
         self.T = T
         
     def setup(self, model, x_ref, u_ref):
+        # Define optimization variables
         self.opti = ca.Opti()
+        
+        # Define optimization states
+        self.opt_states = self.opti.variable(3, self.N+1)
+        x = self.opt_states[:,0]
+        y = self.opt_states[:,1]
+        theta = self.opt_states[:,2]
+
+        # Define optimization control inputs
+        self.opt_controls = self.opti.variable(2, self.N)
+        self.v = self.opt_controls[0]
+        self.w = self.opt_controls[1]
+        
+        # Model equations
+        model = Model()
+        
+        # Parameters, these parameters are the reference trajectories of the pose and inputs
+        self.opt_x_ref = self.opti.parameter(3, self.N+1)
+        self.opt_u_ref = self.opti.parameter(2, self.N)
+
+        
+        # Anfangsbedingung
+        self.opti.subject_to(self.opt_states[0, :] == self.opt_x_ref[0, :])
+        for i in range(self.N):
+            x_predicted = model.predict(self.opt_states[:, i], self.opt_controls[:, i], self.T)
+            self.opti.subject_to(self.opt_states[:, i+1] == x_predicted)
+            
+        # Cost function J
+        obj = 0
+        for i in range(self.N):
+            state_error = self.opt_states[:,i] - self.opt_x_ref[:, i+1]
+            control_error = self.opt_controls[:,i] - self.opt_u_ref[:,i]           
+            obj += ca.mtimes([state_error.T, self.Q, state_error]) + ca.mtimes([control_error.T, self.R, control_error])
+        self.opti.minimize(obj)
+        
+        # Begrenzungen der Steuerungen
+        self.opti.subject_to(self.opti.bounded(self.uMin[0], self.v, self.uMax[0]))
+        self.opti.subject_to(self.opti.bounded(self.uMin[1], self.w, self.uMax[1]))
+        
+        # IPOPT-Optionen
+        opts = {
+            'ipopt.max_iter': 2000,
+            'ipopt.print_level': 0,
+            'print_time': 0,
+            'ipopt.acceptable_tol': 1e-8,
+            'ipopt.acceptable_obj_change_tol': 1e-6
+        }
+        
+        self.opti.solver('ipopt', opts)
         
         
 
@@ -49,7 +98,7 @@ class nMPC:
         self.subscription = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.pose_callback)
         # Marker Publisher
         self.pub_ref_traj = rospy.Publisher('/pose_markers', MarkerArray, queue_size=10)
-        self.pub_pred_traj = rospy.Publisher('/predicted_markers', MarkerArray, queue_size=10)     
+        self.pub_pose_array_pred_traj = rospy.Publisher('/predicted_poses', PoseArray, queue_size=10)     
         
         print("Controller initialized")
 
@@ -121,9 +170,9 @@ class nMPC:
             obj += ca.mtimes([state_error.T, self.Q, state_error]) + ca.mtimes([control_error.T, self.R, control_error])
         self.opti.minimize(obj)
         
-        # Begrenzungen der Steuerungen
-        self.opti.subject_to(self.opti.bounded(self.uMin[0], self.v, self.uMax[0]))
-        self.opti.subject_to(self.opti.bounded(self.uMin[1], self.w, self.uMax[1]))
+        # # Begrenzungen der Steuerungen
+        # self.opti.subject_to(self.opti.bounded(self.uMin[0], self.v, self.uMax[0]))
+        # self.opti.subject_to(self.opti.bounded(self.uMin[1], self.w, self.uMax[1]))
         
         # IPOPT-Optionen
         opts = {
@@ -158,7 +207,7 @@ class nMPC:
         
         predicted_states = [sol.value(self.opt_states[:, i]) for i in range(self.N+1)]
 
-        self.publish_marker_predicted_states(predicted_states)
+        self.publish_pose_array_predicted_states(predicted_states)
         
         # self.debug_print(next_trajectories.T, next_controls.T, predicted_states)
         
@@ -224,36 +273,27 @@ class nMPC:
             
             self.pub_ref_traj.publish(marker_array)
             
-    def publish_marker_predicted_states(self, positions):
-        marker_array = MarkerArray()
-                            
+    def publish_pose_array_predicted_states(self, positions):
+        pose_array = PoseArray()
+        pose_array.header.frame_id = "map"
+        pose_array.header.stamp = rospy.Time.now()
+        # Erstelle einige Beispielposen
+        poses = []
         for i, pos in enumerate(positions):
-            marker = Marker()
-            marker.header.frame_id = "map"
-            marker.header.stamp = rospy.Time.now()
-            marker.ns = "predicted_trajectory"
-            marker.id = i
-            marker.type = Marker.ARROW
-            marker.action = Marker.ADD
-            marker.pose.position.x = pos[0]
-            marker.pose.position.y = pos[1]
-            marker.pose.position.z = 0.0
-            quaternion = tf.transformations.quaternion_from_euler(0, 0, pos[2])
-            marker.pose.orientation.x = quaternion[0]
-            marker.pose.orientation.y = quaternion[1]
-            marker.pose.orientation.z = quaternion[2]
-            marker.pose.orientation.w = quaternion[3]
-            marker.scale.x = 0.25  # Länge des Pfeils
-            marker.scale.y = 0.05  # Breite des Pfeils
-            marker.scale.z = 0.05  # Höhe des Pfeils
-            marker.color.a = 1.0
-            marker.color.r = 1.0
-            marker.color.g = 0.0
-            marker.color.b = 0.0
-            
-            marker_array.markers.append(marker)
+            pose = Pose()
+            pose.position.x = pos[0]
+            pose.position.y = pos[1]
+            pose.position.z = 0.0
+            quaternion = tf.transformations.quaternion_from_euler(0, 0, pos[2])            
+            pose.orientation.x = quaternion[0]
+            pose.orientation.y = quaternion[1]
+            pose.orientation.z = quaternion[2]
+            pose.orientation.w = quaternion[3]
+            poses.append(pose)
         
-            self.pub_pred_traj.publish(marker_array)
+        pose_array.poses = poses
+        
+        self.pub_pose_array_pred_traj.publish(pose_array)
             
     def compute_straight_trajectory(self, start_pos, end_pos, num_points):
         return np.linspace(start_pos, end_pos, num_points)
@@ -261,6 +301,7 @@ class nMPC:
     def controller_loop(self, event):
         
         init_pose = self.current_pose
+        # init_pose = [-2.0, 0.5, 0.0]
         end_pose = [-2.0, 0.5, 0.0]
 
         # Beispielhafte Referenztrajektorien und Steuerungen
