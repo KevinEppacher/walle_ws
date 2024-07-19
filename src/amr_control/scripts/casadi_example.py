@@ -61,7 +61,7 @@ for k in range(N + 1):
 OPT_variables = ca.reshape(U, 2 * N, 1)
 nlp_prob = {'f': obj, 'x': OPT_variables, 'g': g, 'p': P}
 
-opts = {'ipopt.max_iter': 2000,
+opts = {'ipopt.max_iter': 200,
         'ipopt.print_level': 0,
         'print_time': 0,
         'ipopt.acceptable_tol': 1e-8,
