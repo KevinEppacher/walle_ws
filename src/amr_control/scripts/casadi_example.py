@@ -122,23 +122,21 @@ def animate(i):
     if np.linalg.norm(x0 - xs, 2) > 1e-2 and mpciter < sim_tim / T:
         args['p'] = np.concatenate((x0, xs))
         args['x0'] = u0.reshape(2 * N, 1)
-        
-        print(args['p'])
-        
+                
         sol = solver(x0=args['x0'], lbx=args['lbx'], ubx=args['ubx'],
                      lbg=args['lbg'], ubg=args['ubg'], p=args['p'])
 
         u = sol['x'].full().reshape(N, 2)
-        
-        # print(u[0,0])
-
-                
+                        
         ff_value = ff(u.T, args['p'])
         xx1.append(ff_value.full())
         u_cl.append(u[0, :])
 
         global t
         t = np.vstack((t, t0))
+        
+        print(t)
+        
         [t0, x0, u0] = shift(T, t0, x0, u, f)
         xx = np.hstack((xx, x0.reshape(3, 1)))
         mpciter += 1

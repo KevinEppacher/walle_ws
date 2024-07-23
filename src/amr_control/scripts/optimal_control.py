@@ -29,7 +29,7 @@ def main():
     try:
         model = RobotModel()
         controller = nMPC(model)
-        TrajectoryPlanner(model, controller, initial_state=[0, 0, 0], target_state=[1.5, 1.5, np.pi])
+        TrajectoryPlanner(model, controller, initial_state=[0, 0, 0], target_state=[-1.5, -1.5, np.pi])
         rospy.spin()
     except rospy.ROSInterruptException:
         pass

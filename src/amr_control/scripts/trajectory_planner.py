@@ -53,28 +53,31 @@ class TrajectoryPlanner:
     def controller_loop(self, event):
         if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-2:
             t0 = rospy.get_time()
-            self.xx = np.zeros((3, 1))
-            self.xx[:, 0] = self.current_state
-            
+
+            v_min = -0.2
+            v_max = 0.2
+            omega_min = -0.2
+            omega_max = 0.2
+                        
             # Konfigurieren der Argumente für den Solver
-            args = {
-                'lbg': -2, 'ubg': 2,
-                'lbx': ca.DM.zeros((2 * self.controller.N, 1)),
-                'ubx': ca.DM.zeros((2 * self.controller.N, 1)),
-                'p': np.concatenate((self.current_state, self.target_state))
-            }
+            args = {'lbg': -2, 'ubg': 2}
+            args['lbx'] = ca.DM.zeros((2 * self.controller.N, 1))
+            args['ubx'] = ca.DM.zeros((2 * self.controller.N, 1))
+            args['lbx'][0:2 * self.controller.N -1 : 2] = v_min
+            args['ubx'][0:2 * self.controller.N -1 : 2] = v_max
+            args['lbx'][1:2 * self.controller.N : 2] = omega_min
+            args['ubx'][1:2 * self.controller.N : 2] = omega_max
             # print(args['p'])
 
-            
+            args['p'] = np.concatenate((self.current_state, self.target_state))
+
             args['x0'] = self.u0.reshape(2 * self.controller.N, 1)
                         
             sol = self.controller.solver(x0=args['x0'], lbx=args['lbx'], ubx=args['ubx'],
                                          lbg=args['lbg'], ubg=args['ubg'], p=args['p'])
             
             u = sol['x'].full().reshape(self.controller.N, 2)
-                        
-            print(u[0,0])
-            
+                                   
             # Konvertiere den ersten Steuerbefehl in eine ROS-Nachricht
             cmd_vel_msg = Twist()
             cmd_vel_msg.linear.x = u[0, 0]  # v
@@ -83,13 +86,16 @@ class TrajectoryPlanner:
             # Veröffentliche den Steuerbefehl
             self.cmd_vel_publisher.publish(cmd_vel_msg)
             
-            ff_value = self.controller.ff(u.T, args['p'])
-            self.xx1.append(ff_value.full())
-            self.u_cl.append(u[0, :])
+            print(u[0,0], u[0,1])
             
-            # Aktualisieren von `t` und Zuständen
-            self.t = np.vstack((self.t, t0))  # Aktualisieren der Zeitstempel
             self.current_state, self.u0 = self.shift(u)  # Aktualisieren des Zustands und der Steuerung
+            
+        else:
+            cmd_vel_msg = Twist()
+            cmd_vel_msg.linear.x = 0  # v
+            cmd_vel_msg.angular.z = 0 # omega
+            self.cmd_vel_publisher.publish(cmd_vel_msg)
+
 
     def shift(self, u):
         st = self.current_state
