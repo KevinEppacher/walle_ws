@@ -1,0 +1,4 @@
+<launch>
+    <!-- <env name="PYTHONPATH" value="$(find amr_control)/src" /> -->
+    <node name="optimal_control" pkg="amr_control" type="optimal_control.py" output="screen" />
+</launch>

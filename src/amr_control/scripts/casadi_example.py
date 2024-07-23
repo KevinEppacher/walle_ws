@@ -42,6 +42,8 @@ for k in range(N):
 
 ff = ca.Function('ff', [U, P], [X])
 
+print(ff)
+
 # Objective function
 obj = 0
 g = []
@@ -120,11 +122,17 @@ def animate(i):
     if np.linalg.norm(x0 - xs, 2) > 1e-2 and mpciter < sim_tim / T:
         args['p'] = np.concatenate((x0, xs))
         args['x0'] = u0.reshape(2 * N, 1)
-
+        
+        print(args['p'])
+        
         sol = solver(x0=args['x0'], lbx=args['lbx'], ubx=args['ubx'],
                      lbg=args['lbg'], ubg=args['ubg'], p=args['p'])
 
         u = sol['x'].full().reshape(N, 2)
+        
+        # print(u[0,0])
+
+                
         ff_value = ff(u.T, args['p'])
         xx1.append(ff_value.full())
         u_cl.append(u[0, :])
