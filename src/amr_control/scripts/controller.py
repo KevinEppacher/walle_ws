@@ -23,7 +23,7 @@ import math
 from amr_control.scripts.robot_model import RobotModel
 
 class nMPC:
-    def __init__(self, model, N=25, Q=np.diag([1, 5, 0.1]), R=np.diag([0.5, 0.05]), T=0.1):
+    def __init__(self, model, N=50, Q=np.diag([1, 5, 0.1]), R=np.diag([0.5, 0.05]), T=0.1):
         print("Controller initialized")
         self.model = model
         self.N = N

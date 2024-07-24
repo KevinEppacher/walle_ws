@@ -24,6 +24,7 @@ class TrajectoryPlanner:
         rospy.init_node('nmpc_node', anonymous=True)
         self.subscription = rospy.Subscriber('/odom', Odometry, self.pose_callback)
         self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+        self.pose_array_publisher = rospy.Publisher('/predicted_trajectory', PoseArray, queue_size=10)
 
         self.model = model
         self.controller = controller
@@ -77,7 +78,29 @@ class TrajectoryPlanner:
                                          lbg=args['lbg'], ubg=args['ubg'], p=args['p'])
             
             u = sol['x'].full().reshape(self.controller.N, 2)
-                                   
+            
+            predicted_states = self.controller.ff(u.T, np.concatenate((self.current_state, self.target_state))).full()
+            
+
+            # Konvertieren Sie predicted_states in ein PoseArray und veröffentlichen Sie es
+            pose_array = PoseArray()
+            pose_array.header.stamp = rospy.Time.now()
+            pose_array.header.frame_id = "map"  # oder einen anderen geeigneten frame_id
+
+            for state in predicted_states.T:  # Iteriere durch Spalten, wenn states Zeilen von Zuständen sind
+                pose = Pose()
+                pose.position.x = state[0]
+                pose.position.y = state[1]
+                quaternion = tf.transformations.quaternion_from_euler(0, 0, state[2])
+                pose.orientation.x = quaternion[0]
+                pose.orientation.y = quaternion[1]
+                pose.orientation.z = quaternion[2]
+                pose.orientation.w = quaternion[3]
+                pose_array.poses.append(pose)
+
+            self.pose_array_publisher.publish(pose_array)   
+        
+                                        
             # Konvertiere den ersten Steuerbefehl in eine ROS-Nachricht
             cmd_vel_msg = Twist()
             cmd_vel_msg.linear.x = u[0, 0]  # v
