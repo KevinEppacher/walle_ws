@@ -45,7 +45,7 @@ RUN sudo apt install -y git
 
 RUN sudo apt install -y python3 python3-pip
 
-RUN pip install asadi
+RUN pip install casadi
 
 RUN pip install numpy scipy
 
