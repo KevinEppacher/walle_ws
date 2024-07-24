@@ -19,8 +19,7 @@ from casadi.tools import *
 import numpy as np
 import math
 
-
-from amr_control.scripts.robot_model import RobotModel
+# from amr_control.robot_model import RobotModel
 
 class nMPC:
     def __init__(self, model, N=100, Q=np.diag([1, 5, 0.1]), R=np.diag([0.5, 0.05]), T=0.1):

@@ -5,8 +5,7 @@ import matplotlib.animation as animation
 
 # Setup
 T = 0.2  # sampling time [s]
-N = 100  # prediction horizon
-rob_diam = 0.3
+N = 25  # prediction horizon
 
 v_max = 0.6
 v_min = -v_max
@@ -33,15 +32,6 @@ P = ca.SX.sym('P', n_states + n_states)
 X = ca.SX.sym('X', n_states, N + 1)
 X[:, 0] = P[0:3]
 
-for k in range(N):
-    st = X[:, k]
-    con = U[:, k]
-    f_value = f(st, con)
-    st_next = st + (T * f_value)
-    X[:, k + 1] = st_next
-
-ff = ca.Function('ff', [U, P], [X])
-
 # Objective function
 obj = 0
 g = []
@@ -49,16 +39,20 @@ g = []
 Q = np.diag([1, 5, 0.1])
 R = np.diag([0.5, 0.05])
 
+st = X[:, 0]
+g = ca.vertcat(g, st - P[0:3])
+
 for k in range(N):
     st = X[:, k]
     con = U[:, k]
-    obj += ca.mtimes([(st - P[3:6]).T, Q, (st - P[3:6])]) + ca.mtimes([con.T, R, con])
+    obj = obj + ca.mtimes([(st - P[3:5]).T, Q, (st - P[3:5])]) + ca.mtimes([con.T, R, con])
+    st_next = X[:, k + 1]
+    f_value = f(st, con)
+    st_next_euler = st + (T * f_value)
+    g = ca.vertcat(g, st_next - st_next_euler)
 
-for k in range(N + 1):
-    g = ca.vertcat(g, X[0, k])
-    g = ca.vertcat(g, X[1, k])
+OPT_variables = ca.vertcat(ca.reshape(X, 3 * (N + 1), 1), ca.reshape(U, 2 * N, 1))
 
-OPT_variables = ca.reshape(U, 2 * N, 1)
 nlp_prob = {'f': obj, 'x': OPT_variables, 'g': g, 'p': P}
 
 opts = {'ipopt.max_iter': 200,
@@ -69,23 +63,34 @@ opts = {'ipopt.max_iter': 200,
 
 solver = ca.nlpsol('solver', 'ipopt', nlp_prob, opts)
 
-args = {'lbg': -2, 'ubg': 2}
-args['lbx'] = ca.DM.zeros((2 * N, 1))
-args['ubx'] = ca.DM.zeros((2 * N, 1))
-args['lbx'][0:2*N-1:2] = v_min
-args['ubx'][0:2*N-1:2] = v_max
-args['lbx'][1:2*N:2] = omega_min
-args['ubx'][1:2*N:2] = omega_max
+args = {'lbg': ca.DM.zeros((n_states * (N + 1), 1)), 'ubg': ca.DM.zeros((n_states * (N + 1), 1))}
+
+args['lbx'] = ca.DM.zeros((3 * (N + 1) + 2 * N, 1))
+args['ubx'] = ca.DM.zeros((3 * (N + 1) + 2 * N, 1))
+
+args['lbx'][0:3*(N+1):3] = -2  # state x lower bound
+args['ubx'][0:3*(N+1):3] = 2   # state x upper bound
+args['lbx'][1:3*(N+1):3] = -2  # state y lower bound
+args['ubx'][1:3*(N+1):3] = 2   # state y upper bound
+args['lbx'][2:3*(N+1):3] = -ca.inf  # state theta lower bound
+args['ubx'][2:3*(N+1):3] = ca.inf   # state theta upper bound
+
+args['lbx'][3*(N+1)::2] = v_min     # v lower bound
+args['ubx'][3*(N+1)::2] = v_max     # v upper bound
+args['lbx'][3*(N+1)+1::2] = omega_min  # omega lower bound
+args['ubx'][3*(N+1)+1::2] = omega_max  # omega upper bound
 
 # Simulation loop
 t0 = 0
 x0 = np.array([0, 0, 0])
-xs = np.array([1.5, 1.5, 0])
+xs = np.array([1.5, 1.5, np.pi])
 xx = np.zeros((3, 1))
 xx[:, 0] = x0
+u0 = np.zeros((N, 2))  # two control inputs for each
+X0 = np.tile(x0, (N+1, 1)).T  # initialization of the states
+
 global t
 t = np.array([t0])
-u0 = np.zeros((N, 2))
 sim_tim = 20
 mpciter = 0
 xx1 = []
@@ -118,25 +123,31 @@ def animate(i):
     global t0, x0, u0, mpciter, xx
 
     if np.linalg.norm(x0 - xs, 2) > 1e-2 and mpciter < sim_tim / T:
-        args['p'] = np.concatenate((x0, xs))
-        args['x0'] = u0.reshape(2 * N, 1)
-                
+        args['p'] = np.concatenate((x0, xs))  # set the values of the parameters vector
+        args['x0'] = np.concatenate((X0.T.reshape(3*(N+1), 1), u0.T.reshape(2*N, 1)))
+
         sol = solver(x0=args['x0'], lbx=args['lbx'], ubx=args['ubx'],
-                     lbg=args['lbg'], ubg=args['ubg'], p=args['p'])
+                    lbg=args['lbg'], ubg=args['ubg'], p=args['p'])
 
-        u = sol['x'].full().reshape(N, 2)
-                        
-        ff_value = ff(u.T, args['p'])
-        xx1.append(ff_value.full())
+        u = sol['x'][3*(N+1):].full().reshape((2, N)).T
+
+        # get controls only from the solution
+        xx1.append(sol['x'][:3*(N+1)].full().reshape((N+1, 3)).T)
+
+        # get solution TRAJECTORY
         u_cl.append(u[0, :])
-
         global t
-        t = np.vstack((t, t0))
-        
-        print(t)
-        
-        [t0, x0, u0] = shift(T, t0, x0, u, f)
+        t = np.append(t, t0)
+
+        # Apply the control and shift the solution
+        t0, x0, u0 = shift(T, t0, x0, u, f)
         xx = np.hstack((xx, x0.reshape(3, 1)))
+
+        X0 = sol['x'][:3*(N+1)].full().reshape((N+1, 3))
+
+        # Shift trajectory to initialize the next step
+        X0 = np.vstack((X0[1:, :], X0[-1, :]))
+
         mpciter += 1
 
     line.set_data(xx[0, :], xx[1, :])

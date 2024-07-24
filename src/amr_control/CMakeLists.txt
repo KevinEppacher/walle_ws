@@ -27,9 +27,12 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  # include
   ${catkin_INCLUDE_DIRS}
 )
+  
+catkin_python_setup()
+
 
 ############################################################
 # CMakelist for optimal_control node
@@ -37,11 +40,7 @@ include_directories(
 
 # Install Python scripts
 catkin_install_python(PROGRAMS
-  scripts/optimal_control.py 
-  scripts/controller.py 
-  scripts/trajectory_planner.py 
-  scripts/robot_model.py 
-  scripts/visualizer.py
+  src/amr_control/optimal_control.py 
 DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -51,7 +50,7 @@ DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 
 # Install Python scripts
 catkin_install_python(PROGRAMS
-  scripts/tutorials/single_shooting_nmpc_tutorial.py
+  src/amr_control/tutorials/single_shooting_nmpc_tutorial.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -61,6 +60,6 @@ catkin_install_python(PROGRAMS
 
 # Install Python scripts
 catkin_install_python(PROGRAMS
-  scripts/tutorials/multiple_shooting_nmpc_tutorial.py
+  src/amr_control/tutorials/multiple_shooting_nmpc_tutorial.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

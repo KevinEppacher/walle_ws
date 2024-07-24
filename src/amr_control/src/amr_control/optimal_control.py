@@ -20,10 +20,9 @@ import numpy as np
 import math
 
 # Custom imports
-from amr_control.scripts.controller import nMPC
-from amr_control.scripts.robot_model import RobotModel
-from amr_control.scripts.trajectory_planner import TrajectoryPlanner
-# from amr_control.scripts.visualizer import Visualizer
+from amr_control.controller import nMPC
+from amr_control.robot_model import RobotModel
+from amr_control.trajectory_planner import TrajectoryPlanner
 
 def main():
     try:
