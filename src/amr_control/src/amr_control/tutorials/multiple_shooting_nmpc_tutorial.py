@@ -110,6 +110,7 @@ while np.linalg.norm(x0 - xs, 2) > 1e-2 and mpciter < sim_tim / T:
 
     u = np.reshape(sol['x'][3 * (N + 1):].full(), (N, 2))
     xx1.append(np.reshape(sol['x'][:3 * (N + 1)].full(), (N + 1, 3)))
+    print(xx1)
 
     u_cl.append(u[0, :])
     t.append(t0)

@@ -53,44 +53,64 @@ class TrajectoryPlanner:
 
     def controller_loop(self, event):
         if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-2:
-            t0 = rospy.get_time()
+            N = self.controller.N
 
             v_min = -0.2
             v_max = 0.2
             omega_min = -0.2
             omega_max = 0.2
+            
+            args = {'lbg': np.zeros((3 * (N + 1), 1)),
+            'ubg': np.zeros((3 * (N + 1), 1)),
+            'lbx': np.full((3 * (N + 1) + 2 * N, 1), -ca.inf),
+            'ubx': np.full((3 * (N + 1) + 2 * N, 1), ca.inf)}
                         
-            # Konfigurieren der Argumente für den Solver
-            args = {'lbg': -2, 'ubg': 2}
-            args['lbx'] = ca.DM.zeros((2 * self.controller.N, 1))
-            args['ubx'] = ca.DM.zeros((2 * self.controller.N, 1))
-            args['lbx'][0:2 * self.controller.N -1 : 2] = v_min
-            args['ubx'][0:2 * self.controller.N -1 : 2] = v_max
-            args['lbx'][1:2 * self.controller.N : 2] = omega_min
-            args['ubx'][1:2 * self.controller.N : 2] = omega_max
+            # State bounds
+            args['lbx'][0:3 * (N + 1):3] = -2
+            args['ubx'][0:3 * (N + 1):3] = 2
+            args['lbx'][1:3 * (N + 1):3] = -2
+            args['ubx'][1:3 * (N + 1):3] = 2
+            args['lbx'][2:3 * (N + 1):3] = -ca.inf
+            args['ubx'][2:3 * (N + 1):3] = ca.inf
+            
+            # Control bounds
+            args['lbx'][3 * (N + 1)::2] = v_min
+            args['ubx'][3 * (N + 1)::2] = v_max
+            args['lbx'][3 * (N + 1) + 1::2] = omega_min
+            args['ubx'][3 * (N + 1) + 1::2] = omega_max
             # print(args['p'])
 
             args['p'] = np.concatenate((self.current_state, self.target_state))
+            
+            u0 = np.zeros((N, 2))
+            X0 = np.tile(self.current_state, (N + 1, 1))
 
-            args['x0'] = self.u0.reshape(2 * self.controller.N, 1)
+            args['x0'] = np.concatenate((X0.T.flatten(), u0.T.flatten()))
                         
             sol = self.controller.solver(x0=args['x0'], lbx=args['lbx'], ubx=args['ubx'],
                                          lbg=args['lbg'], ubg=args['ubg'], p=args['p'])
             
-            u = sol['x'].full().reshape(self.controller.N, 2)
+            xx = np.zeros((3, 1))
+            xx[:, 0] = self.current_state
             
-            predicted_states = self.controller.ff(u.T, np.concatenate((self.current_state, self.target_state))).full()
+            u = np.reshape(sol['x'][3 * (N + 1):].full(), (N, 2))
             
+            predicted_states = []
+            predicted_states.append(np.reshape(sol['x'][:3 * (N + 1)].full(), (N + 1, 3)))
+            
+            predicted_states = np.array(predicted_states).squeeze()
+            print(predicted_states)
 
             # Konvertieren Sie predicted_states in ein PoseArray und veröffentlichen Sie es
             pose_array = PoseArray()
             pose_array.header.stamp = rospy.Time.now()
             pose_array.header.frame_id = "map"  # oder einen anderen geeigneten frame_id
 
-            for state in predicted_states.T:  # Iteriere durch Spalten, wenn states Zeilen von Zuständen sind
+            for state in predicted_states:  # Iteriere durch Spalten, wenn states Zeilen von Zuständen sind
                 pose = Pose()
                 pose.position.x = state[0]
                 pose.position.y = state[1]
+                print(state[0], state[1], state[2])
                 quaternion = tf.transformations.quaternion_from_euler(0, 0, state[2])
                 pose.orientation.x = quaternion[0]
                 pose.orientation.y = quaternion[1]
