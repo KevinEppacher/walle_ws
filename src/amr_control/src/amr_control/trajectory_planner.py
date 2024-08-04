@@ -26,6 +26,9 @@ class TrajectoryPlanner:
         self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.pose_array_publisher = rospy.Publisher('/predicted_trajectory', PoseArray, queue_size=10)
 
+        # Add a publisher for the obstacle marker
+        self.marker_publisher = rospy.Publisher('/obstacle_marker', Marker, queue_size=10)
+
         self.model = model
         self.controller = controller
         self.current_state = np.array(initial_state)
@@ -34,8 +37,14 @@ class TrajectoryPlanner:
         self.xx1 = []
         self.u_cl = []
 
-        # Initialisieren Sie `t` als Instanzvariable
-        self.t = np.array([rospy.get_time()])  # Verwenden Sie ROS-Zeit, wenn in ROS-Umgebung
+        # Obstacle parameters
+        self.obs_x = self.controller.obstacle.x
+        self.obs_y = self.controller.obstacle.y
+        self.obs_diam = self.controller.obstacle.diam
+        self.obs_height = 1.0  # Height of the obstacle for visualization
+
+        # Initialize `t` as an instance variable
+        self.t = np.array([rospy.get_time()])  # Use ROS time in ROS environment
 
         self.timer = rospy.Timer(rospy.Duration(self.controller.T), self.controller_loop)
 
@@ -59,14 +68,14 @@ class TrajectoryPlanner:
             v_max = 0.5
             omega_min = -0.5
             omega_max = 0.5
-            
+
             args = {
-            'lbg': np.zeros((3 * (N + 1), 1)),
-            'ubg': np.zeros((3 * (N + 1), 1)),
-            'lbx': np.full((3 * (N + 1) + 2 * N, 1), -ca.inf),
-            'ubx': np.full((3 * (N + 1) + 2 * N, 1), ca.inf)
+                'lbg': np.concatenate((np.zeros((3 * (N + 1), 1)), np.full((N + 1, 1), -np.inf))),  # Include inequality constraints
+                'ubg': np.concatenate((np.zeros((3 * (N + 1), 1)), np.full((N + 1, 1), 0))),  # Upper bound for inequality
+                'lbx': np.full((3 * (N + 1) + 2 * N, 1), -ca.inf),
+                'ubx': np.full((3 * (N + 1) + 2 * N, 1), ca.inf)
             }
-                        
+
             # State bounds
             args['lbx'][0:3 * (N + 1):3] = -20
             args['ubx'][0:3 * (N + 1):3] = 20
@@ -74,7 +83,7 @@ class TrajectoryPlanner:
             args['ubx'][1:3 * (N + 1):3] = 20
             args['lbx'][2:3 * (N + 1):3] = -ca.inf
             args['ubx'][2:3 * (N + 1):3] = ca.inf
-            
+
             # Control bounds
             args['lbx'][3 * (N + 1)::2] = v_min
             args['ubx'][3 * (N + 1)::2] = v_max
@@ -82,35 +91,34 @@ class TrajectoryPlanner:
             args['ubx'][3 * (N + 1) + 1::2] = omega_max
 
             args['p'] = np.concatenate((self.current_state, self.target_state))
-            
+
             u0 = np.zeros((N, 2))
             X0 = np.tile(self.current_state, (N + 1, 1))
 
             args['x0'] = np.concatenate((X0.T.flatten(), u0.T.flatten()))
-                        
+
             sol = self.controller.solver(x0=args['x0'], lbx=args['lbx'], ubx=args['ubx'],
                                          lbg=args['lbg'], ubg=args['ubg'], p=args['p'])
-            
+
             xx = np.zeros((3, 1))
             xx[:, 0] = self.current_state
-            
+
             u = np.reshape(sol['x'][3 * (N + 1):].full(), (N, 2))
-            
+
             predicted_states = []
             predicted_states.append(np.reshape(sol['x'][:3 * (N + 1)].full(), (N + 1, 3)))
-            
+
             predicted_states = np.array(predicted_states).squeeze()
 
-            # Konvertieren Sie predicted_states in ein PoseArray und veröffentlichen Sie es
+            # Convert predicted_states to a PoseArray and publish it
             pose_array = PoseArray()
             pose_array.header.stamp = rospy.Time.now()
-            pose_array.header.frame_id = "map"  # oder einen anderen geeigneten frame_id
+            pose_array.header.frame_id = "map"  # or another appropriate frame_id
 
-            for state in predicted_states:  # Iteriere durch Spalten, wenn states Zeilen von Zuständen sind
+            for state in predicted_states:  # Iterate through columns if states are rows of states
                 pose = Pose()
                 pose.position.x = state[0]
                 pose.position.y = state[1]
-                print(state[0], state[1], state[2])
                 quaternion = tf.transformations.quaternion_from_euler(0, 0, state[2])
                 pose.orientation.x = quaternion[0]
                 pose.orientation.y = quaternion[1]
@@ -118,25 +126,26 @@ class TrajectoryPlanner:
                 pose.orientation.w = quaternion[3]
                 pose_array.poses.append(pose)
 
-            self.pose_array_publisher.publish(pose_array)   
-        
-                                        
-            # Konvertiere den ersten Steuerbefehl in eine ROS-Nachricht
+            self.pose_array_publisher.publish(pose_array)
+
+            # Convert the first control command to a ROS message
             cmd_vel_msg = Twist()
             cmd_vel_msg.linear.x = u[0, 0]  # v
             cmd_vel_msg.angular.z = u[0, 1]  # omega
 
-            # Veröffentliche den Steuerbefehl
+            # Publish the control command
             self.cmd_vel_publisher.publish(cmd_vel_msg)
-                        
-            self.current_state, self.u0 = self.shift(u)  # Aktualisieren des Zustands und der Steuerung
-            
+
+            self.current_state, self.u0 = self.shift(u)  # Update state and control
+
         else:
             cmd_vel_msg = Twist()
             cmd_vel_msg.linear.x = 0  # v
-            cmd_vel_msg.angular.z = 0 # omega
+            cmd_vel_msg.angular.z = 0  # omega
             self.cmd_vel_publisher.publish(cmd_vel_msg)
 
+        # Publish the obstacle marker
+        self.publish_obstacle_marker()
 
     def shift(self, u):
         st = self.current_state
@@ -145,3 +154,27 @@ class TrajectoryPlanner:
         st_next = st + (self.controller.T * f_value.full().flatten())
         u0 = np.vstack((u[1:, :], u[-1, :]))
         return st_next, u0
+
+    def publish_obstacle_marker(self):
+        marker = Marker()
+        marker.header.frame_id = "map"  # Make sure this matches your RViz frame
+        marker.header.stamp = rospy.Time.now()
+        marker.ns = "obstacle"
+        marker.id = 0
+        marker.type = Marker.CYLINDER
+        marker.action = Marker.ADD
+        marker.pose.position.x = self.obs_x
+        marker.pose.position.y = self.obs_y
+        marker.pose.position.z = self.obs_height / 2.0  # Center the height
+        marker.pose.orientation.x = 0.0
+        marker.pose.orientation.y = 0.0
+        marker.pose.orientation.z = 0.0
+        marker.pose.orientation.w = 1.0
+        marker.scale.x = self.obs_diam
+        marker.scale.y = self.obs_diam
+        marker.scale.z = self.obs_height
+        marker.color.a = 0.8  # Transparency
+        marker.color.r = 1.0
+        marker.color.g = 0.0
+        marker.color.b = 0.0
+        self.marker_publisher.publish(marker)

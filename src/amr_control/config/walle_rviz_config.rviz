@@ -221,6 +221,14 @@ Visualization Manager:
         {}
       Update Interval: 0
       Value: false
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /obstacle_marker
+      Name: Marker
+      Namespaces:
+        obstacle: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -248,20 +256,26 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: 3.125000476837158
-      Class: rviz/TopDownOrtho
+      Class: rviz/ThirdPersonFollower
+      Distance: 3.608107328414917
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
+      Field of View: 0.7853981852531433
+      Focal Point:
+        X: 1.560190200805664
+        Y: 0.8685201406478882
+        Z: -2.384185791015625e-07
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: -150.64231872558594
+      Pitch: 0.6103981733322144
       Target Frame: <Fixed Frame>
-      X: 0.37476176023483276
-      Y: 0.82157301902771
+      Yaw: 5.678583145141602
     Saved: ~
 Window Geometry:
   Displays:

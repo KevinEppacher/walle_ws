@@ -22,9 +22,10 @@ import math
 # from amr_control.robot_model import RobotModel
 
 class nMPC:
-    def __init__(self, model, N=100, Q=np.diag([1, 5, 0.1]), R=np.diag([0.5, 0.05]), T=0.1):
+    def __init__(self, model, obstacle, N=100, Q=np.diag([1, 5, 0.1]), R=np.diag([0.5, 0.05]), T=0.1):
         print("Controller initialized")
         self.model = model
+        self.obstacle = obstacle
         self.N = N
         self.Q = Q
         self.R = R
@@ -35,6 +36,10 @@ class nMPC:
         U = ca.SX.sym('U', self.model.n_controls, self.N)
         P = ca.SX.sym('P', self.model.n_states + self.model.n_states)
         X = ca.SX.sym('X', self.model.n_states, self.N + 1)
+        obs_x = self.obstacle.x
+        obs_y = self.obstacle.y
+        obs_diam = self.obstacle.diam
+        rob_diam = self.model.diam
 
         # Definiere die Kostenfunktion
         obj = 0
@@ -50,6 +55,11 @@ class nMPC:
             f_value = self.model.f(st, con)
             st_next_euler = st + self.T * f_value
             g = ca.vertcat(g, st_next - st_next_euler)
+            
+        # Obstacle avoidance constraints
+        for k in range(self.N + 1):
+            obs_constraint = -ca.sqrt((X[0, k] - obs_x) ** 2 + (X[1, k] - obs_y) ** 2) + (rob_diam / 2 + obs_diam / 2)
+            g = ca.vertcat(g, obs_constraint)
 
         # Make the decision variable one column vector
         self.OPT_variables = ca.vertcat(ca.reshape(X, self.model.n_states * (self.N + 1), 1), ca.reshape(U, self.model.n_controls * self.N, 1))
