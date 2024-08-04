@@ -52,24 +52,26 @@ class TrajectoryPlanner:
         return yaw
 
     def controller_loop(self, event):
-        if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-2:
+        if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-1:
             N = self.controller.N
 
-            v_min = -0.2
-            v_max = 0.2
-            omega_min = -0.2
-            omega_max = 0.2
+            v_min = -0.5
+            v_max = 0.5
+            omega_min = -0.5
+            omega_max = 0.5
             
-            args = {'lbg': np.zeros((3 * (N + 1), 1)),
+            args = {
+            'lbg': np.zeros((3 * (N + 1), 1)),
             'ubg': np.zeros((3 * (N + 1), 1)),
             'lbx': np.full((3 * (N + 1) + 2 * N, 1), -ca.inf),
-            'ubx': np.full((3 * (N + 1) + 2 * N, 1), ca.inf)}
+            'ubx': np.full((3 * (N + 1) + 2 * N, 1), ca.inf)
+            }
                         
             # State bounds
-            args['lbx'][0:3 * (N + 1):3] = -2
-            args['ubx'][0:3 * (N + 1):3] = 2
-            args['lbx'][1:3 * (N + 1):3] = -2
-            args['ubx'][1:3 * (N + 1):3] = 2
+            args['lbx'][0:3 * (N + 1):3] = -20
+            args['ubx'][0:3 * (N + 1):3] = 20
+            args['lbx'][1:3 * (N + 1):3] = -20
+            args['ubx'][1:3 * (N + 1):3] = 20
             args['lbx'][2:3 * (N + 1):3] = -ca.inf
             args['ubx'][2:3 * (N + 1):3] = ca.inf
             
@@ -78,7 +80,6 @@ class TrajectoryPlanner:
             args['ubx'][3 * (N + 1)::2] = v_max
             args['lbx'][3 * (N + 1) + 1::2] = omega_min
             args['ubx'][3 * (N + 1) + 1::2] = omega_max
-            # print(args['p'])
 
             args['p'] = np.concatenate((self.current_state, self.target_state))
             
@@ -99,7 +100,6 @@ class TrajectoryPlanner:
             predicted_states.append(np.reshape(sol['x'][:3 * (N + 1)].full(), (N + 1, 3)))
             
             predicted_states = np.array(predicted_states).squeeze()
-            print(predicted_states)
 
             # Konvertieren Sie predicted_states in ein PoseArray und veröffentlichen Sie es
             pose_array = PoseArray()
@@ -128,9 +128,7 @@ class TrajectoryPlanner:
 
             # Veröffentliche den Steuerbefehl
             self.cmd_vel_publisher.publish(cmd_vel_msg)
-            
-            print(u[0,0], u[0,1])
-            
+                        
             self.current_state, self.u0 = self.shift(u)  # Aktualisieren des Zustands und der Steuerung
             
         else:
