@@ -64,10 +64,10 @@ class TrajectoryPlanner:
         if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-1:
             N = self.controller.N
 
-            v_min = -0.5
-            v_max = 0.5
-            omega_min = -0.5
-            omega_max = 0.5
+            v_min = -0.2
+            v_max = 0.2
+            omega_min = -0.2
+            omega_max = 0.2
 
             args = {
                 'lbg': np.concatenate((np.zeros((3 * (N + 1), 1)), np.full((N + 1, 1), -np.inf))),  # Include inequality constraints
