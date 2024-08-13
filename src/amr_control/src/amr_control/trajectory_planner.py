@@ -67,6 +67,11 @@ class TrajectoryPlanner:
     def controller_loop(self, event):
         if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-1:
             N = self.controller.N
+            n_states = self.model.n_states
+            n_controls = self.model.n_controls
+            current_time = rospy.get_time()
+            T = self.controller.T
+            ref_traj = self.ref_traj
 
             v_min = -0.2
             v_max = 0.2
@@ -77,7 +82,8 @@ class TrajectoryPlanner:
                 'lbg': np.concatenate((np.zeros((3 * (N + 1), 1)), np.full((N + 1, 1), -np.inf))),
                 'ubg': np.concatenate((np.zeros((3 * (N + 1), 1)), np.full((N + 1, 1), 0))),
                 'lbx': np.full((3 * (N + 1) + 2 * N, 1), -ca.inf),
-                'ubx': np.full((3 * (N + 1) + 2 * N, 1), ca.inf)
+                'ubx': np.full((3 * (N + 1) + 2 * N, 1), ca.inf),
+                'p': np.zeros((n_states + N * (n_states + n_controls),))  # Initialize 'p'
             }
             
             # State bounds
@@ -93,8 +99,39 @@ class TrajectoryPlanner:
             args['ubx'][3 * (N + 1)::2] = v_max
             args['lbx'][3 * (N + 1) + 1::2] = omega_min
             args['ubx'][3 * (N + 1) + 1::2] = omega_max
+            
+            args['p'][0:3] = self.current_state  # Initial condition
+            
+            size_ref_traj = len(ref_traj)
+            ref_traj_array = []
+                        
+            # Set the reference trajectory
+            for k in range(N):                
+                if k < size_ref_traj:
+                    ref_traj_array.append(ref_traj[k].pose)
+                    # Use reference trajectory from ref_traj if available
+                    x_ref = ref_traj[k].pose.position.x
+                    y_ref = ref_traj[k].pose.position.y
+                    theta_ref = self.get_yaw_from_quaternion([
+                        ref_traj[k].pose.orientation.x,
+                        ref_traj[k].pose.orientation.y,
+                        ref_traj[k].pose.orientation.z,
+                        ref_traj[k].pose.orientation.w
+                    ])
+                else:
+                    # Fallback values if k is beyond available ref_traj
+                    x_ref = self.current_state[0]  # Or another fallback value
+                    y_ref = self.current_state[1]  # Or another fallback value
+                    theta_ref = self.current_state[2]  # Or another fallback value
 
-            args['p'] = np.concatenate((self.current_state, self.target_state))
+                u_ref = 0
+                omega_ref = 0
+
+                # Set the reference values in p
+                args['p'][n_states + k * (n_states + n_controls): n_states + (k + 1) * (n_states + n_controls) - 2] = [x_ref, y_ref, theta_ref]
+                args['p'][n_states + (k + 1) * (n_states + n_controls) - 2: n_states + (k + 1) * (n_states + n_controls)] = [u_ref, omega_ref]
+
+            self.viz.publish_refrence_trajectory(ref_traj_array)
 
             u0 = np.zeros((N, 2))
             X0 = np.tile(self.current_state, (N + 1, 1))

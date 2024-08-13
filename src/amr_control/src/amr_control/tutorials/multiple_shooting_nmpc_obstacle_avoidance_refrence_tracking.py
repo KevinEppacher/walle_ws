@@ -110,7 +110,6 @@ args['ubx'][3 * (N + 1) + 1::2] = omega_max  # omega upper bound
 # Simulation loop
 t0 = 0
 x0 = np.array([0, 0, 0.0])  # Initial condition
-xs = np.array([1.5, 1.5, 0.0])  # Reference posture
 
 xx = np.zeros((3, 1))
 xx[:, 0] = x0
@@ -138,7 +137,6 @@ def shift(T, t0, x0, u, f):
 plt.ion()
 fig, ax = plt.subplots()
 robot_line, = ax.plot(xx[0, :], xx[1, :], 'b-', label='Trajectory')
-goal_point, = ax.plot(xs[0], xs[1], 'ro', label='Goal')
 ax.set_xlim([-2, 15])
 ax.set_ylim([-2, 2])
 ax.set_xlabel('x')

@@ -10,7 +10,8 @@ import tf.transformations
 class Visualizer:
     def __init__(self):
         rospy.init_node('nmpc_node', anonymous=True)
-        self.pose_array_publisher = rospy.Publisher('/predicted_trajectory', PoseArray, queue_size=10)
+        self.predicted_pose_array_pub = rospy.Publisher('/predicted_trajectory', PoseArray, queue_size=10)
+        self.refrence_pose_array_pub = rospy.Publisher('/refrence_trajectory', PoseArray, queue_size=10)
         self.marker_publisher = rospy.Publisher('/obstacle_marker', Marker, queue_size=10)
 
         
@@ -30,7 +31,7 @@ class Visualizer:
             pose.orientation.w = quaternion[3]
             pose_array.poses.append(pose)
 
-        self.pose_array_publisher.publish(pose_array)
+        self.predicted_pose_array_pub.publish(pose_array)
         
     def publish_obstacle_marker(self, obstacle):
         # Obstacle parameters
@@ -61,6 +62,25 @@ class Visualizer:
         marker.color.g = 0.0
         marker.color.b = 0.0
         self.marker_publisher.publish(marker)
-    
+        
+    def publish_refrence_trajectory(self, refrence_trajectory):
+        pose_array = PoseArray()
+        pose_array.header.stamp = rospy.Time.now()
+        pose_array.header.frame_id = "map"
 
+        for pose in refrence_trajectory:
+            new_pose = Pose()
+            new_pose.position.x = pose.position.x
+            new_pose.position.y = pose.position.y
+            new_pose.position.z = pose.position.z  # Falls relevant
+
+            # Wenn die Orientierung bereits korrekt ist, können Sie sie direkt übernehmen
+            new_pose.orientation.x = pose.orientation.x
+            new_pose.orientation.y = pose.orientation.y
+            new_pose.orientation.z = pose.orientation.z
+            new_pose.orientation.w = pose.orientation.w
+
+            pose_array.poses.append(new_pose)
+
+        self.refrence_pose_array_pub.publish(pose_array)
 
