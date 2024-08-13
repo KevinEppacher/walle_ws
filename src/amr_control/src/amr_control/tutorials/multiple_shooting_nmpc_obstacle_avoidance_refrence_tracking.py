@@ -162,6 +162,7 @@ while mpciter < sim_tim / T:
         args['p'][n_states + k * (n_states + n_controls): n_states + (k + 1) * (n_states + n_controls) - 2] = [x_ref, y_ref, theta_ref]
         args['p'][n_states + (k + 1) * (n_states + n_controls) - 2: n_states + (k + 1) * (n_states + n_controls)] = [u_ref, omega_ref]
 
+    print(args['p'].shape)
     # Solve the NLP
     args['x0'] = np.concatenate((X0.T.flatten(), u0.T.flatten()))
     sol = solver(x0=args['x0'], lbx=args['lbx'], ubx=args['ubx'], lbg=args['lbg'], ubg=args['ubg'], p=args['p'])

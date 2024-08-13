@@ -23,14 +23,14 @@ import math
 from amr_control.controller import nMPC
 from amr_control.robot_model import RobotModel
 from amr_control.trajectory_planner import TrajectoryPlanner
-from amr_control.obstacle import ObstacleAvoidance
+from amr_control.obstacle import Obstacle
 
 def main():
     try:
-        obstacle = ObstacleAvoidance()
+        obstacle = Obstacle()
         model = RobotModel()
         controller = nMPC(model, obstacle)
-        TrajectoryPlanner(model, controller, initial_state=[0, 0, 0], target_state=[1.5, 1.5, np.pi])
+        TrajectoryPlanner(model, controller, initial_state=[0, 0, 0], target_state=[2.5, 0.5, 0])
         # TrajectoryPlanner(model, controller, initial_state=[0, 0, 0], target_state=[0, 0, np.pi])
         rospy.spin()
     except rospy.ROSInterruptException:

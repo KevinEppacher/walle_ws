@@ -3,7 +3,7 @@
 
     <!-- Create gazebo world -->
     <include file="$(find gazebo_ros)launch/empty_world.launch" >
-        <!-- <arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/turtlebot3_house.world"/>   -->
+        <arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/turtlebot3_house.world"/>  
         <arg name="headless" value="false" />
         <arg name="gui" value="false" />
         <arg name="use_sim_time" value="true" />
@@ -15,7 +15,7 @@
     <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_burger.urdf.xacro"/>
 
     <!-- Spawn URDF model in Gazebo -->
-    <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model turtlebot3_burger -x 0.5 -y 0.5 -z 0.0 -Y 0 -param robot_description" />
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model turtlebot3_burger -x 0.5 -y 0.5 -z 0.5 -Y 0 -param robot_description" />
 
     <!-- Include the turtlebot3_remote.launch file -->
     <include file="$(find turtlebot3_bringup)/launch/turtlebot3_remote.launch"/>
@@ -72,4 +72,11 @@
     <!-- <node name="main" pkg="amr_control" type="main" output="screen" /> -->
     <rosparam file="$(find amr_control)/param/costmap_common_params_$(arg model).yaml" command="load" ns="global_costmap"/>
     
+    <!-- Das <include>-Element ist eine Möglichkeit, um Code aus einer anderen Datei wiederzuverwenden. Es ermöglicht es,
+     den Code in separate Dateien aufzuteilen und ihn dann in anderen Dateien einzufügen, um die Wiederverwendbarkeit und
+      Lesbarkeit des Codes zu verbessern. -->
+    <include file="$(find amr_control)/launch/move_base.launch" />
+
+    <!-- <include file="$(find amr_control)/launch/particle_filter.launch" /> -->
+
 </launch>
