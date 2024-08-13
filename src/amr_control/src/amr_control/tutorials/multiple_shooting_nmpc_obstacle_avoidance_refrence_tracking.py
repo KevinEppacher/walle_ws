@@ -45,15 +45,22 @@ R = np.diag([0.5, 0.05])
 st = X[:, 0]
 g = ca.vertcat(g, st - P[0:n_states])
 
-# Cost function and dynamic constraints
+# Loop over the prediction horizon
 for k in range(N):
+    # Extract current state and control
     st = X[:, k]
     con = U[:, k]
-    obj += ca.mtimes([(st - P[n_states + k * (n_states + n_controls): n_states + (k + 1) * (n_states + n_controls) - 2]).T, Q,
-                      (st - P[n_states + k * (n_states + n_controls): n_states + (k + 1) * (n_states + n_controls) - 2])]) \
-        + ca.mtimes([(con - P[n_states + (k + 1) * (n_states + n_controls) - 2: n_states + (k + 1) * (n_states + n_controls)]).T, R,
-                     (con - P[n_states + (k + 1) * (n_states + n_controls) - 2: n_states + (k + 1) * (n_states + n_controls)])])
     
+    # Calculate the objective function
+    state_ref = P[n_states + k * (n_states + n_controls): n_states + (k + 1) * (n_states + n_controls) - 2]
+    control_ref = P[n_states + (k + 1) * (n_states + n_controls) - 2: n_states + (k + 1) * (n_states + n_controls)]
+    
+    state_error = st - state_ref
+    control_error = con - control_ref
+    
+    obj += ca.mtimes([state_error.T, Q, state_error]) + ca.mtimes([control_error.T, R, control_error])
+    
+    # System dynamics constraints
     st_next = X[:, k + 1]
     f_value = f(st, con)
     st_next_euler = st + T * f_value
