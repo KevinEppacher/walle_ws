@@ -226,7 +226,7 @@ Visualization Manager:
       Marker Topic: /obstacle_marker
       Name: Marker
       Namespaces:
-        obstacle: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 0.699999988079071
@@ -243,7 +243,7 @@ Visualization Manager:
       Buffer Length: 1
       Class: rviz/Path
       Color: 25; 255; 0
-      Enabled: false
+      Enabled: true
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
       Length: 0.30000001192092896
@@ -262,7 +262,7 @@ Visualization Manager:
       Shaft Length: 0.10000000149011612
       Topic: /move_base/NavfnROS/plan
       Unreliable: false
-      Value: false
+      Value: true
     - Alpha: 1
       Arrow Length: 0.30000001192092896
       Axes Length: 0.02500000037252903
@@ -320,7 +320,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 2.1645302772521973
+      Distance: 8.372597694396973
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -328,17 +328,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 4.295629501342773
-        Y: 1.080431342124939
+        X: 2.1409924030303955
+        Y: -0.07774776220321655
         Z: 1.6689300537109375e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.1897958517074585
+      Pitch: 1.4997955560684204
       Target Frame: <Fixed Frame>
-      Yaw: 4.800390720367432
+      Yaw: 4.695390224456787
     Saved: ~
 Window Geometry:
   Displays:

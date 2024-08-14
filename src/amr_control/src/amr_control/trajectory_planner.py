@@ -5,9 +5,9 @@ import rospy
 from std_msgs.msg import String
 from geometry_msgs.msg import Twist, Point, PoseWithCovarianceStamped, PoseArray, Pose
 from sensor_msgs.msg import LaserScan
-from std_msgs.msg import Float32MultiArray  # Assuming you need multiple floats for position
-from nav_msgs.msg import Odometry, Path  # Import Odometry message type
-from tf.transformations import euler_from_quaternion
+from std_msgs.msg import Float32MultiArray
+from nav_msgs.msg import Odometry, Path
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
 import tf.transformations
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -27,9 +27,8 @@ class TrajectoryPlanner:
         rospy.init_node('nmpc_node', anonymous=True)
         self.odom_sub = rospy.Subscriber('/odom', Odometry, self.pose_callback)
         self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
-        self.global_plan_sub = rospy.Subscriber('/move_base/NavfnROS/plan', Path, self.global_plan_callback)        # Add a publisher for the obstacle marker
+        self.global_plan_sub = rospy.Subscriber('/move_base/NavfnROS/plan', Path, self.global_plan_callback)
         self.viz = Visualizer()
-
 
         self.model = model
         self.controller = controller
@@ -56,7 +55,35 @@ class TrajectoryPlanner:
         self.current_state = np.array([position.x, position.y, yaw])
         
     def global_plan_callback(self, msg):
-        self.ref_traj = msg.poses
+        self.ref_traj = self.adjust_waypoint_orientations(msg.poses)
+
+    def adjust_waypoint_orientations(self, poses):
+        if len(poses) < 2:
+            return poses  # Wenn es weniger als 2 Punkte gibt, gibt es nichts zu tun
+
+        for i in range(len(poses) - 1):
+            # Aktueller und nächster Punkt
+            current_pose = poses[i].pose
+            next_pose = poses[i + 1].pose
+
+            # Berechne den Yaw-Winkel basierend auf der Richtung zwischen den beiden Punkten
+            dx = next_pose.position.x - current_pose.position.x
+            dy = next_pose.position.y - current_pose.position.y
+            yaw = math.atan2(dy, dx)
+
+            # Konvertiere den Yaw-Winkel in ein Quaternion
+            quaternion = quaternion_from_euler(0, 0, yaw)
+
+            # Aktualisiere die Orientierung des aktuellen Waypoints
+            current_pose.orientation.x = quaternion[0]
+            current_pose.orientation.y = quaternion[1]
+            current_pose.orientation.z = quaternion[2]
+            current_pose.orientation.w = quaternion[3]
+
+        return poses
+    
+    def normalize_angle(self, angle):
+        return (angle + math.pi) % (2 * math.pi) - math.pi
 
     def get_yaw_from_quaternion(self, quaternion):
         norm = math.sqrt(sum([x * x for x in quaternion]))
@@ -106,7 +133,7 @@ class TrajectoryPlanner:
             ref_traj_array = []
                         
             # Set the reference trajectory
-            for k in range(N):                
+            for k in range(N):           
                 if k < size_ref_traj:
                     ref_traj_array.append(ref_traj[k].pose)
                     # Use reference trajectory from ref_traj if available
@@ -118,14 +145,34 @@ class TrajectoryPlanner:
                         ref_traj[k].pose.orientation.z,
                         ref_traj[k].pose.orientation.w
                     ])
+                    theta_ref = self.normalize_angle(theta_ref)
+                    u_ref = 0.5
+                    omega_ref = 0
                 else:
                     # Fallback values if k is beyond available ref_traj
-                    x_ref = self.current_state[0]  # Or another fallback value
-                    y_ref = self.current_state[1]  # Or another fallback value
-                    theta_ref = self.current_state[2]  # Or another fallback value
+                    x_ref = self.current_state[0]
+                    y_ref = self.current_state[1]
+                    theta_ref = self.current_state[2]
+                             
+                # if size_ref_traj < N:
+                #     # Use reference trajectory from ref_traj if available
+                #     x_ref = ref_traj[size_ref_traj].pose.position.x
+                #     y_ref = ref_traj[size_ref_traj].pose.position.y
+                #     theta_ref = self.get_yaw_from_quaternion([
+                #         ref_traj[size_ref_traj].pose.orientation.x,
+                #         ref_traj[size_ref_traj].pose.orientation.y,
+                #         ref_traj[size_ref_traj].pose.orientation.z,
+                #         ref_traj[size_ref_traj].pose.orientation.w
+                #     ])
+                #     theta_ref = self.normalize_angle(theta_ref)
+                #     u_ref = 0
+                #     omega_ref = 0
+                #     print("ref_traj[size_ref_traj].pose.position.x", ref_traj[size_ref_traj].pose.position.x)
+                    
 
-                u_ref = 0
-                omega_ref = 0
+                print("ref theta: ", theta_ref)
+                print("current theta: ", self.current_state[2])
+
 
                 # Set the reference values in p
                 args['p'][n_states + k * (n_states + n_controls): n_states + (k + 1) * (n_states + n_controls) - 2] = [x_ref, y_ref, theta_ref]
@@ -153,11 +200,13 @@ class TrajectoryPlanner:
             predicted_states = np.array(predicted_states).squeeze()
 
             self.viz.publish_predicted_trajectory(predicted_states)
-                        
+            # rospy.loginfo("Calculating optimal control input")
+            # rospy.loginfo("Control input: {}".format(u))
 
         else:
             u = [0,0]
             self.publish_cmd_vel(u)
+            rospy.loginfo("Target reached")
             
         self.viz.publish_obstacle_marker(self.controller.obstacle)
         
@@ -166,3 +215,10 @@ class TrajectoryPlanner:
         cmd_vel_msg.linear.x = u[0]
         cmd_vel_msg.angular.z = u[1]
         self.cmd_vel_publisher.publish(cmd_vel_msg)
+
+if __name__ == '__main__':
+    try:
+        planner = TrajectoryPlanner(model=None, controller=None, initial_state=[0, 0, 0], target_state=[1, 1, 0])
+        rospy.spin()
+    except rospy.ROSInterruptException:
+        pass
