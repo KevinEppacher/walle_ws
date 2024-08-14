@@ -52,10 +52,13 @@ class TrajectoryPlanner:
         position = msg.pose.pose.position
         orientation = msg.pose.pose.orientation
         yaw = self.get_yaw_from_quaternion([orientation.x, orientation.y, orientation.z, orientation.w])
+        yaw = self.normalize_angle(yaw)
         self.current_state = np.array([position.x, position.y, yaw])
         
     def global_plan_callback(self, msg):
         self.ref_traj = self.adjust_waypoint_orientations(msg.poses)
+        size_global_plan = len(msg.poses)
+        self.target_state = np.array([self.ref_traj[size_global_plan-1].pose.position.x, self.ref_traj[size_global_plan-1].pose.position.y, 0])
 
     def adjust_waypoint_orientations(self, poses):
         if len(poses) < 2:
@@ -70,7 +73,7 @@ class TrajectoryPlanner:
             dx = next_pose.position.x - current_pose.position.x
             dy = next_pose.position.y - current_pose.position.y
             yaw = math.atan2(dy, dx)
-
+            yaw = self.normalize_angle(yaw)
             # Konvertiere den Yaw-Winkel in ein Quaternion
             quaternion = quaternion_from_euler(0, 0, yaw)
 
@@ -92,7 +95,7 @@ class TrajectoryPlanner:
         return yaw
 
     def controller_loop(self, event):
-        if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-1:
+        if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-2:
             N = self.controller.N
             n_states = self.model.n_states
             n_controls = self.model.n_controls
@@ -130,6 +133,7 @@ class TrajectoryPlanner:
             args['p'][0:3] = self.current_state  # Initial condition
             
             size_ref_traj = len(ref_traj)
+
             ref_traj_array = []
                         
             # Set the reference trajectory
@@ -153,26 +157,15 @@ class TrajectoryPlanner:
                     x_ref = self.current_state[0]
                     y_ref = self.current_state[1]
                     theta_ref = self.current_state[2]
-                             
-                # if size_ref_traj < N:
-                #     # Use reference trajectory from ref_traj if available
-                #     x_ref = ref_traj[size_ref_traj].pose.position.x
-                #     y_ref = ref_traj[size_ref_traj].pose.position.y
-                #     theta_ref = self.get_yaw_from_quaternion([
-                #         ref_traj[size_ref_traj].pose.orientation.x,
-                #         ref_traj[size_ref_traj].pose.orientation.y,
-                #         ref_traj[size_ref_traj].pose.orientation.z,
-                #         ref_traj[size_ref_traj].pose.orientation.w
-                #     ])
-                #     theta_ref = self.normalize_angle(theta_ref)
-                #     u_ref = 0
-                #     omega_ref = 0
-                #     print("ref_traj[size_ref_traj].pose.position.x", ref_traj[size_ref_traj].pose.position.x)
-                    
-
-                print("ref theta: ", theta_ref)
-                print("current theta: ", self.current_state[2])
-
+                                         
+                if size_ref_traj < N:
+                    # Use reference trajectory from ref_traj if available
+                    x_ref = self.target_state[0]
+                    y_ref = self.target_state[1]
+                    theta_ref = self.target_state[2]
+                    theta_ref = self.normalize_angle(theta_ref)
+                    u_ref = 0
+                    omega_ref = 0
 
                 # Set the reference values in p
                 args['p'][n_states + k * (n_states + n_controls): n_states + (k + 1) * (n_states + n_controls) - 2] = [x_ref, y_ref, theta_ref]
@@ -215,10 +208,3 @@ class TrajectoryPlanner:
         cmd_vel_msg.linear.x = u[0]
         cmd_vel_msg.angular.z = u[1]
         self.cmd_vel_publisher.publish(cmd_vel_msg)
-
-if __name__ == '__main__':
-    try:
-        planner = TrajectoryPlanner(model=None, controller=None, initial_state=[0, 0, 0], target_state=[1, 1, 0])
-        rospy.spin()
-    except rospy.ROSInterruptException:
-        pass
