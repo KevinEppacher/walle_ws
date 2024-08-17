@@ -79,4 +79,6 @@
 
     <!-- <include file="$(find amr_control)/launch/particle_filter.launch" /> -->
 
+    <include file="$(find amr_control)/launch/start_optimal_control.launch" />
+
 </launch>

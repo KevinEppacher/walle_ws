@@ -12,6 +12,11 @@ v_min = -v_max
 omega_max = np.pi / 4
 omega_min = -omega_max
 
+# Obstacle parameters
+obs_x = 6  # meters
+obs_y = 0.8  # meters
+obs_diam = 1.5  # meters
+
 # Define the state variables and control inputs
 x = ca.SX.sym('x')
 y = ca.SX.sym('y')
@@ -66,6 +71,11 @@ for k in range(N):
     st_next_euler = st + T * f_value
     g = ca.vertcat(g, st_next - st_next_euler)
 
+# Obstacle avoidance constraints
+for k in range(N + 1):
+    obs_constraint = -ca.sqrt((X[0, k] - obs_x) ** 2 + (X[1, k] - obs_y) ** 2) + (rob_diam / 2 + obs_diam / 2)
+    g = ca.vertcat(g, obs_constraint)
+
 # Flatten decision variables
 OPT_variables = ca.vertcat(ca.reshape(X, n_states * (N + 1), 1), ca.reshape(U, n_controls * N, 1))
 
@@ -85,12 +95,13 @@ opts = {
 solver = ca.nlpsol('solver', 'ipopt', nlp_prob, opts)
 
 # Constraints bounds
+num_constraints = 3 * (N + 1) + (N + 1)  # Equality + Obstacle constraints
+
 args = {
-    'lbg': np.zeros((3 * (N + 1), 1)),  # Equality constraints
-    'ubg': np.zeros((3 * (N + 1), 1)),  # Equality constraints
+    'lbg': np.concatenate((np.zeros((3 * (N + 1), 1)), np.full((N + 1, 1), -np.inf))),  # Include inequality constraints
+    'ubg': np.concatenate((np.zeros((3 * (N + 1), 1)), np.full((N + 1, 1), 0))),  # Upper bound for inequality
     'lbx': np.full((3 * (N + 1) + 2 * N, 1), -ca.inf),
-    'ubx': np.full((3 * (N + 1) + 2 * N, 1), ca.inf),
-    'p': np.zeros((n_states + N * (n_states + n_controls),))  # Initialize 'p'
+    'ubx': np.full((3 * (N + 1) + 2 * N, 1), ca.inf)
 }
 
 # State bounds
@@ -137,17 +148,20 @@ def shift(T, t0, x0, u, f):
 plt.ion()
 fig, ax = plt.subplots()
 robot_line, = ax.plot(xx[0, :], xx[1, :], 'b-', label='Trajectory')
+obstacle_circle = plt.Circle((obs_x, obs_y), obs_diam / 2, color='r', fill=False, linestyle='--', label='Obstacle')
+ax.add_patch(obstacle_circle)
 ax.set_xlim([-2, 15])
 ax.set_ylim([-2, 2])
 ax.set_xlabel('x')
 ax.set_ylabel('y')
-ax.set_title('Robot Trajectory')
+ax.set_title('Robot Trajectory with Obstacle Avoidance and Reference Tracking')
 ax.legend()
 plt.grid(True)
 
 # Main simulation loop
 while mpciter < sim_tim / T:
     current_time = mpciter * T
+    args['p'] = np.zeros((n_states + N * (n_states + n_controls),))  # Initialize 'p' array
     args['p'][0:3] = x0  # Initial condition
 
     # Set the reference trajectory
@@ -167,11 +181,12 @@ while mpciter < sim_tim / T:
         args['p'][n_states + k * (n_states + n_controls): n_states + (k + 1) * (n_states + n_controls) - 2] = [x_ref, y_ref, theta_ref]
         args['p'][n_states + (k + 1) * (n_states + n_controls) - 2: n_states + (k + 1) * (n_states + n_controls)] = [u_ref, omega_ref]
 
-    print(args['p'].shape)
     # Solve the NLP
     args['x0'] = np.concatenate((X0.T.flatten(), u0.T.flatten()))
     sol = solver(x0=args['x0'], lbx=args['lbx'], ubx=args['ubx'], lbg=args['lbg'], ubg=args['ubg'], p=args['p'])
     u = np.reshape(sol['x'][3 * (N + 1):].full(), (N, 2))
+    
+    print(u)
     xx1.append(np.reshape(sol['x'][:3 * (N + 1)].full(), (N + 1, 3)))
 
     u_cl.append(u[0, :])
