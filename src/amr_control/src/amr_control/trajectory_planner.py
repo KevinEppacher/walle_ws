@@ -30,9 +30,11 @@ class TrajectoryPlanner:
         self.global_plan_sub = rospy.Subscriber('/move_base/NavfnROS/plan', Path, self.global_plan_callback)
         self.viz = Visualizer()
 
-        self.model = model
         self.controller = controller
-        self.u0 = np.zeros((self.controller.N, 2))
+        N = self.controller.N
+        self.model = model
+        self.u0 = np.zeros((N, 2))
+        self.xx1 = []
         self.ref_traj = []
 
         # Obstacle parameters
@@ -41,6 +43,10 @@ class TrajectoryPlanner:
         self.obs_diam = self.controller.obstacle.diam
         self.obs_height = self.controller.obstacle.height
         
+        x0 = np.array([0, 0, 0.0])  # Initial condition
+
+        self.X0 = np.tile(x0, (N + 1, 1))
+
         self.timer = rospy.Timer(rospy.Duration(self.controller.T), self.controller_loop)
 
     def pose_callback(self, msg):
@@ -49,6 +55,7 @@ class TrajectoryPlanner:
         yaw = self.get_yaw_from_quaternion([orientation.x, orientation.y, orientation.z, orientation.w])
         yaw = self.normalize_angle(yaw)
         self.current_state = np.array([position.x, position.y, yaw])
+
         
     def global_plan_callback(self, msg):
         self.ref_traj = self.adjust_waypoint_orientations(msg.poses)
@@ -137,8 +144,8 @@ class TrajectoryPlanner:
             args['lbx'][3 * (N + 1) + 1::2] = omega_min
             args['ubx'][3 * (N + 1) + 1::2] = omega_max
             
-            args['p'][0:3] = self.current_state  # Initial condition
-            
+            args['p'][0:3] = self.current_state
+                        
             size_ref_traj = len(ref_traj)
 
             ref_traj_array = []
@@ -157,13 +164,8 @@ class TrajectoryPlanner:
                         ref_traj[k].pose.orientation.w
                     ])
                     theta_ref = self.normalize_angle(theta_ref)
-                    u_ref = 0.5
+                    u_ref = 10
                     omega_ref = 0
-                # else:
-                #     # Fallback values if k is beyond available ref_traj
-                #     x_ref = self.current_state[0]
-                #     y_ref = self.current_state[1]
-                #     theta_ref = self.current_state[2]
                                          
                 if size_ref_traj < N:
                     # Use reference trajectory from ref_traj if available
@@ -180,19 +182,18 @@ class TrajectoryPlanner:
 
             self.viz.publish_refrence_trajectory(ref_traj_array)
 
-            u0 = np.zeros((N, 2))
-            x0 = np.array([0, 0, 0.0])  # Initial condition
-            X0 = np.tile(x0, (N + 1, 1))
-
-
-            # X0 = np.tile(self.current_state, (N + 1, 1))
-
-            args['x0'] = np.concatenate((X0.T.flatten(), u0.T.flatten()))
+            args['x0'] = np.concatenate((self.X0.T.flatten(), self.u0.T.flatten()))
 
             sol = self.controller.solver(x0=args['x0'], lbx=args['lbx'], ubx=args['ubx'],
                                          lbg=args['lbg'], ubg=args['ubg'], p=args['p'])
 
             u = np.reshape(sol['x'][3 * (N + 1):].full(), (N, 2))
+            
+            self.u0 = np.vstack((u[1:, :], u[-1, :]))
+
+            self.xx1.append(np.reshape(sol['x'][:3 * (N + 1)].full(), (N + 1, 3)))
+            
+            self.X0 = np.vstack((self.xx1[-1][1:], self.xx1[-1][-1, :]))
             
             u = u[0]
             
@@ -202,7 +203,7 @@ class TrajectoryPlanner:
             predicted_states.append(np.reshape(sol['x'][:3 * (N + 1)].full(), (N + 1, 3)))
 
             predicted_states = np.array(predicted_states).squeeze()
-
+            
             self.viz.publish_predicted_trajectory(predicted_states)
             rospy.loginfo("Calculating optimal control input")
 

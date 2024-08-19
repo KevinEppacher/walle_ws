@@ -22,7 +22,7 @@ import math
 # from amr_control.robot_model import RobotModel
 
 class nMPC:
-    def __init__(self, model, obstacle, N=100, Q=np.diag([1, 1, 0.01]), R=np.diag([0.5, 0.05]), T=0.1):
+    def __init__(self, model, obstacle, N=75, Q=np.diag([1, 1, 0.001]), R=np.diag([0.5, 0.05]), T=0.1):
         print("Controller initialized")
         self.model = model
         self.obstacle = obstacle
@@ -55,16 +55,7 @@ class nMPC:
         
         st = X[:, 0]
         g = ca.vertcat(g, st - P[:3])
-        # for k in range(N):
-        #     st = X[:, k]
-        #     con = U[:, k]
-        #     obj = obj + (st - P[3:]).T @ Q @ (st - P[3:]) + con.T @ R @ con
-        #     st_next = X[:, k + 1]
-        #     f_value = self.model.f(st, con)
-        #     st_next_euler = st + T * f_value
-        #     g = ca.vertcat(g, st_next - st_next_euler)
-        
-        
+
         # Loop over the prediction horizon
         for k in range(N):
             # Extract current state and control
@@ -101,8 +92,8 @@ class nMPC:
         opts = {'ipopt.max_iter': 2000,
                 'ipopt.print_level': 0,
                 'print_time': 0,
-                'ipopt.acceptable_tol': 1e-8,
-                'ipopt.acceptable_obj_change_tol': 1e-6}
+                'ipopt.acceptable_tol': 1e-10,
+                'ipopt.acceptable_obj_change_tol': 1e-8}
 
         self.solver = ca.nlpsol('solver', 'ipopt', nlp_prob, opts)
 

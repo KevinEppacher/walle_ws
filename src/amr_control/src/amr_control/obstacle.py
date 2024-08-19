@@ -8,5 +8,5 @@ class Obstacle:
     def define_obstacle(self):
         self.x = 4
         self.y = 1
-        self.diam = 0.8
+        self.diam = 0.5
         self.height = 1

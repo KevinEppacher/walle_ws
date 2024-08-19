@@ -186,7 +186,13 @@ while mpciter < sim_tim / T:
     sol = solver(x0=args['x0'], lbx=args['lbx'], ubx=args['ubx'], lbg=args['lbg'], ubg=args['ubg'], p=args['p'])
     u = np.reshape(sol['x'][3 * (N + 1):].full(), (N, 2))
     
-    print(u)
+    predicted_states = []
+    predicted_states.append(np.reshape(sol['x'][:3 * (N + 1)].full(), (N + 1, 3)))
+
+    predicted_states = np.array(predicted_states).squeeze()
+    
+    print(predicted_states)
+    
     xx1.append(np.reshape(sol['x'][:3 * (N + 1)].full(), (N + 1, 3)))
 
     u_cl.append(u[0, :])
@@ -207,13 +213,13 @@ while mpciter < sim_tim / T:
 plt.ioff()  # Disable interactive mode
 plt.show()
 
-# Plot control inputs
+# Open a new window and plot control inputs
 plt.figure()
-plt.plot(t, [uc[0] for uc in u_cl], label='v')
-plt.plot(t, [uc[1] for uc in u_cl], label='omega')
-plt.xlabel('time')
-plt.ylabel('control inputs')
-plt.title('Control inputs')
+plt.plot(t[:-1], [uc[0] for uc in u_cl], label='v')
+plt.plot(t[:-1], [uc[1] for uc in u_cl], label='omega')
+plt.xlabel('Time [s]')
+plt.ylabel('Control Inputs')
+plt.title('Control Inputs over Time')
 plt.legend()
 plt.grid()
 plt.show()
