@@ -29,24 +29,8 @@ class TrajectoryPlanner:
         self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.global_plan_sub = rospy.Subscriber('/move_base/NavfnROS/plan', Path, self.global_plan_callback)
         self.viz = Visualizer()
-
         self.controller = controller
-        N = self.controller.N
-        self.model = model
-        self.u0 = np.zeros((N, 2))
-        self.xx1 = []
         self.ref_traj = []
-
-        # Obstacle parameters
-        self.obs_x = self.controller.obstacle.x
-        self.obs_y = self.controller.obstacle.y
-        self.obs_diam = self.controller.obstacle.diam
-        self.obs_height = self.controller.obstacle.height
-        
-        x0 = np.array([0, 0, 0.0])  # Initial condition
-
-        self.X0 = np.tile(x0, (N + 1, 1))
-
         self.timer = rospy.Timer(rospy.Duration(self.controller.T), self.controller_loop)
 
     def pose_callback(self, msg):
@@ -60,14 +44,14 @@ class TrajectoryPlanner:
     def global_plan_callback(self, msg):
         self.ref_traj = self.adjust_waypoint_orientations(msg.poses)
         size_global_plan = len(msg.poses)
-        tareget_pose = self.ref_traj[size_global_plan-1].pose
+        target_pose = self.ref_traj[size_global_plan-1].pose
         yaw = self.get_yaw_from_quaternion([
-            tareget_pose.orientation.x,
-            tareget_pose.orientation.y,
-            tareget_pose.orientation.z,
-            tareget_pose.orientation.w
+            target_pose.orientation.x,
+            target_pose.orientation.y,
+            target_pose.orientation.z,
+            target_pose.orientation.w
         ])
-        self.target_state = np.array([tareget_pose.position.x, tareget_pose.position.y, yaw])
+        self.target_state = np.array([target_pose.position.x, target_pose.position.y, yaw])
 
     def adjust_waypoint_orientations(self, poses):
         if len(poses) < 2:
@@ -112,99 +96,8 @@ class TrajectoryPlanner:
         
     def compute_control_input(self):
         if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-2:
-            N = self.controller.N
-            n_states = self.model.n_states
-            n_controls = self.model.n_controls
-            ref_traj = self.ref_traj
-
-            v_min, v_max = -0.2, 0.2
-            omega_min, omega_max = -0.2, 0.2
-
-            args = {
-                'lbg': np.concatenate((np.zeros((3 * (N + 1), 1)), np.full((N + 1, 1), -np.inf))),
-                'ubg': np.concatenate((np.zeros((3 * (N + 1), 1)), np.full((N + 1, 1), 0))),
-                'lbx': np.full((3 * (N + 1) + 2 * N, 1), -ca.inf),
-                'ubx': np.full((3 * (N + 1) + 2 * N, 1), ca.inf),
-                'p': np.zeros((n_states + N * (n_states + n_controls),))
-            }
-            
-            # State bounds
-            args['lbx'][0:3 * (N + 1):3] = -ca.inf
-            args['ubx'][0:3 * (N + 1):3] = ca.inf
-            args['lbx'][1:3 * (N + 1):3] = -ca.inf
-            args['ubx'][1:3 * (N + 1):3] = ca.inf
-            args['lbx'][2:3 * (N + 1):3] = -ca.inf
-            args['ubx'][2:3 * (N + 1):3] = ca.inf
-
-            # Control bounds
-            args['lbx'][3 * (N + 1)::2] = v_min
-            args['ubx'][3 * (N + 1)::2] = v_max
-            args['lbx'][3 * (N + 1) + 1::2] = omega_min
-            args['ubx'][3 * (N + 1) + 1::2] = omega_max
-            
-            args['p'][0:3] = self.current_state
-                        
-            size_ref_traj = len(ref_traj)
-
-            ref_traj_array = []
-                        
-            # Set the reference trajectory
-            for k in range(N):           
-                if k < size_ref_traj:
-                    ref_traj_array.append(ref_traj[k].pose)
-                    # Use reference trajectory from ref_traj if available
-                    x_ref = ref_traj[k].pose.position.x
-                    y_ref = ref_traj[k].pose.position.y
-                    theta_ref = self.get_yaw_from_quaternion([
-                        ref_traj[k].pose.orientation.x,
-                        ref_traj[k].pose.orientation.y,
-                        ref_traj[k].pose.orientation.z,
-                        ref_traj[k].pose.orientation.w
-                    ])
-                    theta_ref = self.normalize_angle(theta_ref)
-                    u_ref = 10
-                    omega_ref = 0
-                                         
-                if size_ref_traj < N:
-                    # Use reference trajectory from ref_traj if available
-                    x_ref = self.target_state[0]
-                    y_ref = self.target_state[1]
-                    theta_ref = self.target_state[2]
-                    theta_ref = self.normalize_angle(theta_ref)
-                    u_ref = 0
-                    omega_ref = 0
-
-                # Set the reference values in p
-                args['p'][n_states + k * (n_states + n_controls): n_states + (k + 1) * (n_states + n_controls) - 2] = [x_ref, y_ref, theta_ref]
-                args['p'][n_states + (k + 1) * (n_states + n_controls) - 2: n_states + (k + 1) * (n_states + n_controls)] = [u_ref, omega_ref]
-
-            self.viz.publish_refrence_trajectory(ref_traj_array)
-
-            args['x0'] = np.concatenate((self.X0.T.flatten(), self.u0.T.flatten()))
-
-            sol = self.controller.solver(x0=args['x0'], lbx=args['lbx'], ubx=args['ubx'],
-                                         lbg=args['lbg'], ubg=args['ubg'], p=args['p'])
-
-            u = np.reshape(sol['x'][3 * (N + 1):].full(), (N, 2))
-            
-            self.u0 = np.vstack((u[1:, :], u[-1, :]))
-
-            self.xx1.append(np.reshape(sol['x'][:3 * (N + 1)].full(), (N + 1, 3)))
-            
-            self.X0 = np.vstack((self.xx1[-1][1:], self.xx1[-1][-1, :]))
-            
-            u = u[0]
-            
+            u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state)
             self.publish_cmd_vel(u)
-
-            predicted_states = []
-            predicted_states.append(np.reshape(sol['x'][:3 * (N + 1)].full(), (N + 1, 3)))
-
-            predicted_states = np.array(predicted_states).squeeze()
-            
-            self.viz.publish_predicted_trajectory(predicted_states)
-            rospy.loginfo("Calculating optimal control input")
-
         else:
             u = [0,0]
             self.publish_cmd_vel(u)
