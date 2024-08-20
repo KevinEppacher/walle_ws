@@ -76,14 +76,12 @@ class nMPC:
             f_value = self.model.f(st, con)
             st_next_euler = st + T * f_value
             g = ca.vertcat(g, st_next - st_next_euler)
-                
-        
-            
+                            
         # Obstacle avoidance constraints
         for k in range(N + 1):
             obs_constraint = -ca.sqrt((X[0, k] - obs_x) ** 2 + (X[1, k] - obs_y) ** 2) + (rob_diam / 2 + obs_diam / 2)
             g = ca.vertcat(g, obs_constraint)
-
+            
         # Make the decision variable one column vector
         self.OPT_variables = ca.vertcat(ca.reshape(X, n_states * ( N + 1), 1), ca.reshape(U, n_controls * N, 1))
         

@@ -9,6 +9,11 @@
 [submodule "src/turtlebot3_msgs"]
     path = src/turtlebot3_msgs
     url = https://github.com/ROBOTIS-GIT/turtlebot3_msgs.git
+
 [submodule "turtlebot3"]
 	path = turtlebot3
 	url = https://github.com/ROBOTIS-GIT/turtlebot3.git
+
+[submodule "ridgeback_simulator"]
+	path = src/ridgeback_simulator
+	url = https://github.com/ridgeback/ridgeback_simulator.git

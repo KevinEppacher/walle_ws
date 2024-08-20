@@ -117,10 +117,8 @@ class TrajectoryPlanner:
             n_controls = self.model.n_controls
             ref_traj = self.ref_traj
 
-            v_min = -0.2
-            v_max = 0.2
-            omega_min = -0.2
-            omega_max = 0.2
+            v_min, v_max = -0.2, 0.2
+            omega_min, omega_max = -0.2, 0.2
 
             args = {
                 'lbg': np.concatenate((np.zeros((3 * (N + 1), 1)), np.full((N + 1, 1), -np.inf))),
@@ -131,10 +129,10 @@ class TrajectoryPlanner:
             }
             
             # State bounds
-            args['lbx'][0:3 * (N + 1):3] = -20
-            args['ubx'][0:3 * (N + 1):3] = 20
-            args['lbx'][1:3 * (N + 1):3] = -20
-            args['ubx'][1:3 * (N + 1):3] = 20
+            args['lbx'][0:3 * (N + 1):3] = -ca.inf
+            args['ubx'][0:3 * (N + 1):3] = ca.inf
+            args['lbx'][1:3 * (N + 1):3] = -ca.inf
+            args['ubx'][1:3 * (N + 1):3] = ca.inf
             args['lbx'][2:3 * (N + 1):3] = -ca.inf
             args['ubx'][2:3 * (N + 1):3] = ca.inf
 
