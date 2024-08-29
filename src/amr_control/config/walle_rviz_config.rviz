@@ -292,6 +292,14 @@ Visualization Manager:
       Transport Hint: raw
       Unreliable: false
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /visualization_marker
+      Name: Marker
+      Namespaces:
+        obstacle_detection: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -320,7 +328,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 16.75312614440918
+      Distance: 5.688521385192871
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -328,8 +336,8 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 2.0825672149658203
-        Y: -2.6387391090393066
+        X: 1.5802849531173706
+        Y: 0.5871922969818115
         Z: 1.6689300537109375e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
@@ -338,7 +346,7 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 4.735390663146973
+      Yaw: 4.730388641357422
     Saved: ~
 Window Geometry:
   Displays:

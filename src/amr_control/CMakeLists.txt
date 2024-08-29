@@ -83,3 +83,13 @@ catkin_install_python(PROGRAMS
   src/amr_control/tutorials/multiple_shooting_nmpc_obstacle_avoidance_refrence_tracking.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+############################################################
+# CMakelist for obstacle_detection node
+############################################################
+
+# Install Python scripts
+catkin_install_python(PROGRAMS
+  src/amr_control/obstacle_detection.py 
+DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)

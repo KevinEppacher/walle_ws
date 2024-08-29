@@ -10,6 +10,7 @@ from nav_msgs.msg import Odometry, Path
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 import tf.transformations
 from visualization_msgs.msg import Marker, MarkerArray
+import time
 
 # Casadi imports
 import casadi as ca
@@ -36,6 +37,10 @@ class TrajectoryPlanner:
         self.model = RobotModel()
         self.timer = rospy.Timer(rospy.Duration(self.T), self.controller_loop)
 
+        # Zusätzliche Variablen für die Zeitmessung
+        self.total_time = 0.0
+        self.loop_count = 0
+
     def pose_callback(self, msg):
         position = msg.pose.pose.position
         orientation = msg.pose.pose.orientation
@@ -43,7 +48,6 @@ class TrajectoryPlanner:
         yaw = self.normalize_angle(yaw)
         self.current_state = np.array([position.x, position.y, yaw])
 
-        
     def global_plan_callback(self, msg):
         self.ref_traj = self.adjust_waypoint_orientations(msg.poses)
         size_global_plan = len(msg.poses)
@@ -91,20 +95,35 @@ class TrajectoryPlanner:
         return yaw
 
     def controller_loop(self, event):
+        start_time = rospy.Time.now()  # Startzeit mit ROS-Zeitstempel
+
         size_ref_traj = len(self.ref_traj)
-        # self.viz.publish_obstacle_marker(self.controller.obstacle)
         if size_ref_traj > 0:
             self.compute_control_input()
         else:
             rospy.loginfo("No global plan available")
-        
+
+        end_time = rospy.Time.now()  # Endzeit mit ROS-Zeitstempel
+        loop_time = (end_time - start_time).to_sec()  # Taktzeit berechnen in Sekunden
+
+        # Aktualisierung der Gesamtzeit und des Schleifenzählers
+        self.total_time += loop_time
+        self.loop_count += 1
+
+        # Berechnung der kumulierten durchschnittlichen Taktzeit
+        average_loop_time = self.total_time / self.loop_count
+
+        # Ausgabe der Taktzeit und der durchschnittlichen Taktzeit
+        rospy.loginfo(f"Taktzeit: {loop_time:.4f} Sekunden")
+        rospy.loginfo(f"Kumulierte durchschnittliche Taktzeit: {average_loop_time:.4f} Sekunden")
+
     def compute_control_input(self):
         if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-2:
             obstacles = [
-            [4, 1, 0.5],
-            [-2, 1, 0.5],
-            [4, 4, 0.7],
-            [-4, 4, 0.7]
+                [4, 1, 0.5],
+                [-2, 1, 0.5],
+                [4, 4, 0.7],
+                [-4, 4, 0.7]
             ]
             self.controller = nMPC(self.model, obstacles)
             u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state)
@@ -113,7 +132,7 @@ class TrajectoryPlanner:
             u = [0,0]
             self.publish_cmd_vel(u)
             rospy.loginfo("Target reached")        
-        
+
     def publish_cmd_vel(self, u):
         cmd_vel_msg = Twist()
         cmd_vel_msg.linear.x = u[0]
