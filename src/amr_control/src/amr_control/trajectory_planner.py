@@ -89,7 +89,7 @@ class TrajectoryPlanner:
 
     def controller_loop(self, event):
         size_ref_traj = len(self.ref_traj)
-        self.viz.publish_obstacle_marker(self.controller.obstacle)
+        # self.viz.publish_obstacle_marker(self.controller.obstacle)
         if size_ref_traj > 0:
             self.compute_control_input()
         else:

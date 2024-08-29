@@ -29,7 +29,12 @@ def main():
     try:
         obstacle = Obstacle()
         model = RobotModel()
-        controller = nMPC(model, obstacle)
+        obstacles = [
+            [4, 1, 0.5],   # Hindernis 1
+            [-2, 1, 0.5],  # Hindernis 2
+            [3, -3, 0.7]   # Hindernis 3 (weitere Hindernisse können hinzugefügt werden)
+        ]
+        controller = nMPC(model, obstacles)
         TrajectoryPlanner(model, controller)
         rospy.spin()
     except rospy.ROSInterruptException:

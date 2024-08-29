@@ -21,10 +21,10 @@ import math
 from amr_control.visualizer import Visualizer
 
 class nMPC:
-    def __init__(self, model, obstacle, N=100, Q=np.diag([1, 1, 0.001]), R=np.diag([0.5, 0.05]), T=0.1):
+    def __init__(self, model, obstacles, N=100, Q=np.diag([1, 1, 0.001]), R=np.diag([0.5, 0.05]), T=0.1):
         print("Controller initialized")
         self.model = model
-        self.obstacle = obstacle
+        self.obstacles = obstacles  # List of obstacles
         self.N = N
         self.Q = Q
         self.R = R
@@ -47,10 +47,11 @@ class nMPC:
         n_states = self.model.n_states
         n_controls = self.model.n_controls
         N = self.N
+        n_obstacles = len(self.obstacles)
 
         U = ca.SX.sym('U', n_controls, N)
         
-        P = ca.SX.sym('P', n_states + N * (n_states + n_controls) + self.obstacle.n_obstacle_states )
+        P = ca.SX.sym('P', n_states + N * (n_states + n_controls) + n_obstacles * 3)
                 
         X = ca.SX.sym('X', n_states, N + 1)
 
@@ -75,6 +76,7 @@ class nMPC:
         Q = self.Q
         R = self.R
         N = self.N
+        n_obstacles = len(self.obstacles)
 
         obj = 0
         g = []
@@ -87,7 +89,8 @@ class nMPC:
             g.append(self.apply_dynamics_constraint(X[:, k], X[:, k + 1], U[:, k]))
 
         for k in range(N + 1):
-            g.append(self.obstacle_avoidance_constraint(X[:, k], P))
+            for i in range(n_obstacles):
+                g.append(self.obstacle_avoidance_constraint(X[:, k], P, i))
 
         g = ca.vertcat(*g)
         return obj, g
@@ -108,13 +111,14 @@ class nMPC:
         f_value = self.model.f(state, control)
         return next_state - (state + T * f_value)
 
-    def obstacle_avoidance_constraint(self, state, P):
-        obs_x, obs_y, obs_diam = P[-3], P[-2], P[-1]
+    def obstacle_avoidance_constraint(self, state, P, obstacle_index):
+        obs_x = P[-(3 * (obstacle_index + 1))]
+        obs_y = P[-(3 * (obstacle_index + 1) - 1)]
+        obs_diam = P[-(3 * (obstacle_index + 1) - 2)]
         rob_diam = self.model.diam
         return -ca.sqrt((state[0] - obs_x) ** 2 + (state[1] - obs_y) ** 2) + (rob_diam / 2 + obs_diam / 2)
 
     def solve_mpc(self, current_state, ref_traj, target_state):
-        
         args = self.initialize_solver_arguments(current_state, ref_traj, target_state)
 
         # Solve the optimization problem
@@ -128,18 +132,20 @@ class nMPC:
 
         return u[0]
 
-
     def initialize_solver_arguments(self, current_state, ref_traj, target_state):
         N = self.N
         n_states = self.model.n_states
         n_controls = self.model.n_controls
+        n_obstacles = len(self.obstacles)
+
+        total_constraints = 3 * (N + 1) + n_obstacles * (N + 1)
 
         args = {
-            'lbg': np.concatenate((np.zeros((3 * (N + 1), 1)), np.full((N + 1, 1), -np.inf))),
-            'ubg': np.concatenate((np.zeros((3 * (N + 1), 1)), np.full((N + 1, 1), 0))),
+            'lbg': np.concatenate((np.zeros((3 * (N + 1), 1)), np.full((n_obstacles * (N + 1), 1), -np.inf))),
+            'ubg': np.concatenate((np.zeros((3 * (N + 1), 1)), np.full((n_obstacles * (N + 1), 1), 0))),
             'lbx': np.full((3 * (N + 1) + 2 * N, 1), -ca.inf),
             'ubx': np.full((3 * (N + 1) + 2 * N, 1), ca.inf),
-            'p': np.zeros((n_states + N * (n_states + n_controls) + 3,))
+            'p': np.zeros((n_states + N * (n_states + n_controls) + 3 * n_obstacles,))
         }
 
         self.set_bounds(args)
@@ -198,9 +204,11 @@ class nMPC:
             args['p'][n_states + k * (n_states + n_controls): n_states + (k + 1) * (n_states + n_controls) - 2] = [x_ref, y_ref, theta_ref]
             args['p'][n_states + (k + 1) * (n_states + n_controls) - 2: n_states + (k + 1) * (n_states + n_controls)] = [u_ref, omega_ref]
 
-        args['p'][-3:] = [4, 4, 0.5]
-        obstacle_state = args['p'][-3:] 
-        self.obstacle.set_obstacle(args['p'][-3:])
+        # Dynamically set the obstacles
+        offset = n_states + N * (n_states + n_controls)
+        for i, obs in enumerate(self.obstacles):
+            args['p'][offset + 3 * i: offset + 3 * (i + 1)] = obs
+            # self.obstacle.set_obstacle(args['p'][offset + 3 * i: offset + 3 * (i + 1)])
 
         self.viz.publish_refrence_trajectory(ref_traj_array)
 
@@ -223,12 +231,10 @@ class nMPC:
 
         return u
 
-
     def publish_trajectory(self, sol):
         N = self.N
         predicted_states = np.reshape(sol['x'][:3 * (N + 1)].full(), (N + 1, 3))
         self.viz.publish_predicted_trajectory(predicted_states)
-        # rospy.loginfo("Calculating optimal control input")
 
     def get_yaw_from_quaternion(self, quaternion):
         norm = math.sqrt(sum([x * x for x in quaternion]))
