@@ -21,17 +21,20 @@ import math
 
 from amr_control.visualizer import Visualizer
 from amr_control.obstacle import Obstacle
+from amr_control.controller import nMPC
+from amr_control.robot_model import RobotModel
 
 class TrajectoryPlanner:
-    def __init__(self, model, controller):
+    def __init__(self):
         rospy.init_node('nmpc_node', anonymous=True)
         self.odom_sub = rospy.Subscriber('/odom', Odometry, self.pose_callback)
         self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.global_plan_sub = rospy.Subscriber('/move_base/NavfnROS/plan', Path, self.global_plan_callback)
         self.viz = Visualizer()
-        self.controller = controller
+        self.T = 0.1
         self.ref_traj = []
-        self.timer = rospy.Timer(rospy.Duration(self.controller.T), self.controller_loop)
+        self.model = RobotModel()
+        self.timer = rospy.Timer(rospy.Duration(self.T), self.controller_loop)
 
     def pose_callback(self, msg):
         position = msg.pose.pose.position
@@ -97,6 +100,13 @@ class TrajectoryPlanner:
         
     def compute_control_input(self):
         if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-2:
+            obstacles = [
+            [4, 1, 0.5],
+            [-2, 1, 0.5],
+            [4, 4, 0.7],
+            [-4, 4, 0.7]
+            ]
+            self.controller = nMPC(self.model, obstacles)
             u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state)
             self.publish_cmd_vel(u)
         else:

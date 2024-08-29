@@ -21,8 +21,7 @@ import math
 from amr_control.visualizer import Visualizer
 
 class nMPC:
-    def __init__(self, model, obstacles, N=100, Q=np.diag([1, 1, 0.001]), R=np.diag([0.5, 0.05]), T=0.1):
-        print("Controller initialized")
+    def __init__(self, model, obstacles=[], N=100, Q=np.diag([1, 1, 0.001]), R=np.diag([0.5, 0.05]), T=0.1):
         self.model = model
         self.obstacles = obstacles  # List of obstacles
         self.N = N
@@ -64,7 +63,8 @@ class nMPC:
         opts = {
             'ipopt.max_iter': 2000,
             'ipopt.print_level': 0,
-            'print_time': 0,
+            'print_time': False,
+            # 'ipopt.sb': 'yes',
             'ipopt.acceptable_tol': 1e-10,
             'ipopt.acceptable_obj_change_tol': 1e-8
         }
