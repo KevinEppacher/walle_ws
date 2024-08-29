@@ -89,6 +89,7 @@ class TrajectoryPlanner:
 
     def controller_loop(self, event):
         size_ref_traj = len(self.ref_traj)
+        self.viz.publish_obstacle_marker(self.controller.obstacle)
         if size_ref_traj > 0:
             self.compute_control_input()
         else:
@@ -101,10 +102,7 @@ class TrajectoryPlanner:
         else:
             u = [0,0]
             self.publish_cmd_vel(u)
-            rospy.loginfo("Target reached")
-            
-        self.viz.publish_obstacle_marker(self.controller.obstacle)
-        
+            rospy.loginfo("Target reached")        
         
     def publish_cmd_vel(self, u):
         cmd_vel_msg = Twist()
