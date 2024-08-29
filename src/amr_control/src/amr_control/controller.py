@@ -33,16 +33,14 @@ class nMPC:
         self.omega_min, self.omega_max = -0.2, 0.2
         self.viz = Visualizer()
 
-        # Initial states
         self.u0 = np.zeros((N, 2))
         self.xx1 = []
         self.X0 = self.initialize_state()
 
-        # Define the optimization problem
         self.solver = self.define_optimization_problem()
 
     def initialize_state(self):
-        x0 = np.array([0, 0, 0.0])  # Initial condition
+        x0 = np.array([0, 0, 0])
         return np.tile(x0, (self.N + 1, 1))
 
     def define_optimization_problem(self):
@@ -55,11 +53,9 @@ class nMPC:
 
         obj, g = self.define_objective_and_constraints(X, U, P)
 
-        # Set up NLP problem
         OPT_variables = ca.vertcat(ca.reshape(X, n_states * (self.N + 1), 1), ca.reshape(U, n_controls * self.N, 1))
         nlp_prob = {'f': obj, 'x': OPT_variables, 'g': g, 'p': P}
 
-        # Solver options
         opts = {
             'ipopt.max_iter': 2000,
             'ipopt.print_level': 0,
@@ -80,20 +76,16 @@ class nMPC:
         obj = 0
         g = []
 
-        # Initial state constraint
         g.append(X[:, 0] - P[:3])
 
-        # Define objective and constraints over the prediction horizon
         for k in range(N):
             state_ref, control_ref = self.get_references(P, k, n_states)
             obj += self.calculate_objective(X[:, k], U[:, k], state_ref, control_ref, Q, R)
             g.append(self.apply_dynamics_constraint(X[:, k], X[:, k + 1], U[:, k]))
 
-        # Obstacle avoidance constraints
         for k in range(N + 1):
             g.append(self.obstacle_avoidance_constraint(X[:, k]))
 
-        # Flatten the constraint list
         g = ca.vertcat(*g)
         return obj, g
 
@@ -119,10 +111,7 @@ class nMPC:
         return -ca.sqrt((state[0] - obs_x) ** 2 + (state[1] - obs_y) ** 2) + (rob_diam / 2 + obs_diam / 2)
 
     def solve_mpc(self, current_state, ref_traj, target_state):
-        N = self.N
-        n_states = self.model.n_states
-        n_controls = self.model.n_controls
-
+        
         args = self.initialize_solver_arguments(current_state, ref_traj, target_state)
 
         # Solve the optimization problem
@@ -150,14 +139,11 @@ class nMPC:
             'p': np.zeros((n_states + N * (n_states + n_controls),))
         }
 
-        # Set state and control bounds
         self.set_bounds(args)
 
-        # Set initial state and reference trajectory
         args['p'][0:3] = current_state
         self.set_reference_trajectory(args, ref_traj, target_state)
 
-        # Set initial guess for the optimization variables
         args['x0'] = np.concatenate((self.X0.T.flatten(), self.u0.T.flatten()))
 
         return args
@@ -171,7 +157,6 @@ class nMPC:
         args['lbx'][2:3 * (N + 1):3] = -ca.inf
         args['ubx'][2:3 * (N + 1):3] = ca.inf
 
-        # Control bounds
         args['lbx'][3 * (N + 1)::2] = self.v_min
         args['ubx'][3 * (N + 1)::2] = self.v_max
         args['lbx'][3 * (N + 1) + 1::2] = self.omega_min
