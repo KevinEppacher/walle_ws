@@ -35,10 +35,10 @@ class Visualizer:
         
     def publish_obstacle_marker(self, obstacle):
         # Obstacle parameters
-        self.obs_x = obstacle.x
-        self.obs_y = obstacle.y
-        self.obs_diam = obstacle.diam
-        self.obs_height = obstacle.height
+        self.obs_x = obstacle[0]
+        self.obs_y = obstacle[1]
+        self.obs_diam = obstacle[2]
+        self.obs_height = 1
         
         marker = Marker()
         marker.header.frame_id = "map"

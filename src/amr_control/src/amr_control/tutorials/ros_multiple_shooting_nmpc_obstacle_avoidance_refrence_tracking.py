@@ -1,10 +1,53 @@
+#!/usr/bin/env python3
+
+# ROS1 imports
+import rospy
+from geometry_msgs.msg import Twist, Pose, PoseArray
+from nav_msgs.msg import Odometry
+import tf.transformations
+
+# Casadi imports
 import casadi as ca
 import numpy as np
-import matplotlib.pyplot as plt
+
+# Callback function to update the robot's current state from Odometry
+def odom_callback(msg):
+    global x0
+    position = msg.pose.pose.position
+    orientation = msg.pose.pose.orientation
+
+    # Convert quaternion to yaw angle
+    siny_cosp = 2 * (orientation.w * orientation.z + orientation.x * orientation.y)
+    cosy_cosp = 1 - 2 * (orientation.y * orientation.y + orientation.z * orientation.z)
+    yaw = np.arctan2(siny_cosp, cosy_cosp)
+
+    x0 = np.array([position.x, position.y, yaw])
+
+# Shift function to update the state and control
+def shift(T, t0, x0, u, f):
+    st = x0
+    con = u[0, :]
+    f_value = f(st, con)
+    st_next = st + T * f_value.full().flatten()
+    t0 = t0 + T
+    u0 = np.vstack((u[1:, :], u[-1, :]))
+    return t0, st_next, u0
+
+# Initialize ROS node
+rospy.init_node('mpc_controller')
+
+# Subscribe to the /odom topic
+rospy.Subscriber('/odom', Odometry, odom_callback)
+
+# Publisher for the /cmd_vel topic
+cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+
+# Publisher for predicted trajectory
+predicted_pose_array_pub = rospy.Publisher('/predicted_trajectory', PoseArray, queue_size=10)
 
 # Parameters
 T = 0.5  # [s] sampling time
-N = 20  # prediction horizon
+N = 8  # prediction horizon
 rob_diam = 0.3
 
 v_max = 0.6
@@ -36,7 +79,6 @@ f = ca.Function('f', [states, controls], [rhs])
 # Define decision variables
 U = ca.SX.sym('U', n_controls, N)
 P = ca.SX.sym('P', n_states + N * (n_states + n_controls))
-
 X = ca.SX.sym('X', n_states, N + 1)
 
 # Define the objective function and constraints
@@ -118,48 +160,18 @@ args['ubx'][3 * (N + 1)::2] = v_max  # v upper bound
 args['lbx'][3 * (N + 1) + 1::2] = omega_min  # omega lower bound
 args['ubx'][3 * (N + 1) + 1::2] = omega_max  # omega upper bound
 
-# Simulation loop
+# Initialize state and control
 t0 = 0
 x0 = np.array([0, 0, 0.0])  # Initial condition
-
-xx = np.zeros((3, 1))
-xx[:, 0] = x0
-t = [t0]
-
 u0 = np.zeros((N, 2))
 X0 = np.tile(x0, (N + 1, 1))
 
 sim_tim = 30  # Maximum simulation time
-
 mpciter = 0
-xx1 = []
-u_cl = []
-
-def shift(T, t0, x0, u, f):
-    st = x0
-    con = u[0, :]
-    f_value = f(st, con)
-    st_next = st + T * f_value.full().flatten()
-    t0 = t0 + T
-    u0 = np.vstack((u[1:, :], u[-1, :]))
-    return t0, st_next, u0
-
-# Initialize interactive plot
-plt.ion()
-fig, ax = plt.subplots()
-robot_line, = ax.plot(xx[0, :], xx[1, :], 'b-', label='Trajectory')
-obstacle_circle = plt.Circle((obs_x, obs_y), obs_diam / 2, color='r', fill=False, linestyle='--', label='Obstacle')
-ax.add_patch(obstacle_circle)
-ax.set_xlim([-2, 15])
-ax.set_ylim([-2, 2])
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-ax.set_title('Robot Trajectory with Obstacle Avoidance and Reference Tracking')
-ax.legend()
-plt.grid(True)
 
 # Main simulation loop
-while mpciter < sim_tim / T:
+rate = rospy.Rate(1 / T)  # Control loop rate
+while not rospy.is_shutdown() and mpciter < sim_tim / T:
     current_time = mpciter * T
     args['p'] = np.zeros((n_states + N * (n_states + n_controls),))  # Initialize 'p' array
     args['p'][0:3] = x0  # Initial condition
@@ -186,38 +198,35 @@ while mpciter < sim_tim / T:
     sol = solver(x0=args['x0'], lbx=args['lbx'], ubx=args['ubx'], lbg=args['lbg'], ubg=args['ubg'], p=args['p'])
     u = np.reshape(sol['x'][3 * (N + 1):].full(), (N, 2))
     
-    predicted_states = []
-    predicted_states.append(np.reshape(sol['x'][:3 * (N + 1)].full(), (N + 1, 3)))
+    # Extract predicted states for visualization
+    predicted_states = np.reshape(sol['x'][:3 * (N + 1)].full(), (N + 1, 3))
 
-    predicted_states = np.array(predicted_states).squeeze()
-        
-    xx1.append(np.reshape(sol['x'][:3 * (N + 1)].full(), (N + 1, 3)))
+    # Publish predicted trajectory as PoseArray
+    pose_array_msg = PoseArray()
+    pose_array_msg.header.stamp = rospy.Time.now()
+    pose_array_msg.header.frame_id = 'odom'
 
-    u_cl.append(u[0, :])
-    t.append(t0)
+    for i in range(N + 1):
+        pose = Pose()
+        pose.position.x = predicted_states[i, 0]
+        pose.position.y = predicted_states[i, 1]
+        quaternion = tf.transformations.quaternion_from_euler(0, 0, predicted_states[i, 2])
+        pose.orientation.x = quaternion[0]
+        pose.orientation.y = quaternion[1]
+        pose.orientation.z = quaternion[2]
+        pose.orientation.w = quaternion[3]
+        pose_array_msg.poses.append(pose)
+
+    predicted_pose_array_pub.publish(pose_array_msg)
 
     # Apply the control and shift the solution
     t0, x0, u0 = shift(T, t0, x0, u, f)
-    xx = np.hstack((xx, x0[:, None]))
-    X0 = np.vstack((xx1[-1][1:], xx1[-1][-1, :]))
     mpciter += 1
 
-    # Update plot
-    robot_line.set_xdata(xx[0, :])
-    robot_line.set_ydata(xx[1, :])
-    plt.draw()
-    plt.pause(0.01)
+    # Publish control commands
+    cmd_msg = Twist()
+    cmd_msg.linear.x = u[0, 0]
+    cmd_msg.angular.z = u[0, 1]
+    cmd_vel_pub.publish(cmd_msg)
 
-plt.ioff()  # Disable interactive mode
-plt.show()
-
-# Open a new window and plot control inputs
-plt.figure()
-plt.plot(t[:-1], [uc[0] for uc in u_cl], label='v')
-plt.plot(t[:-1], [uc[1] for uc in u_cl], label='omega')
-plt.xlabel('Time [s]')
-plt.ylabel('Control Inputs')
-plt.title('Control Inputs over Time')
-plt.legend()
-plt.grid()
-plt.show()
+    rate.sleep()

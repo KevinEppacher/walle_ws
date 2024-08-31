@@ -28,7 +28,7 @@ from amr_control.robot_model import RobotModel
 class TrajectoryPlanner:
     def __init__(self):
         rospy.init_node('nmpc_node', anonymous=True)
-        self.odom_sub = rospy.Subscriber('/odom', Odometry, self.pose_callback)
+        self.pose_sub = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.pose_callback)  # Subscribed to AMCL instead of odom
         self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.global_plan_sub = rospy.Subscriber('/move_base/NavfnROS/plan', Path, self.global_plan_callback)
         self.viz = Visualizer()
@@ -40,8 +40,10 @@ class TrajectoryPlanner:
         # Zusätzliche Variablen für die Zeitmessung
         self.total_time = 0.0
         self.loop_count = 0
+        self.controller = nMPC(self.model, 5)
 
     def pose_callback(self, msg):
+        # Extracting position and orientation from AMCL's PoseWithCovarianceStamped message
         position = msg.pose.pose.position
         orientation = msg.pose.pose.orientation
         yaw = self.get_yaw_from_quaternion([orientation.x, orientation.y, orientation.z, orientation.w])
@@ -91,7 +93,7 @@ class TrajectoryPlanner:
     def get_yaw_from_quaternion(self, quaternion):
         norm = math.sqrt(sum([x * x for x in quaternion]))
         quaternion = [x / norm for x in quaternion]
-        roll, pitch, yaw = euler_from_quaternion(quaternion)
+        _, _, yaw = euler_from_quaternion(quaternion)
         return yaw
 
     def controller_loop(self, event):
@@ -120,13 +122,12 @@ class TrajectoryPlanner:
     def compute_control_input(self):
         if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-2:
             obstacles = [
-                [4, 1, 0.5],
-                [-2, 1, 0.5],
-                [4, 4, 0.7],
-                [-4, 4, 0.7]
+                [4, 1, 0.3]
+                # [-2, 1, 0.5],
+                # [4, 4, 0.7],
+                # [-4, 4, 0.7]
             ]
-            self.controller = nMPC(self.model, obstacles)
-            u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state)
+            u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, obstacles)
             self.publish_cmd_vel(u)
         else:
             u = [0,0]
@@ -138,3 +139,7 @@ class TrajectoryPlanner:
         cmd_vel_msg.linear.x = u[0]
         cmd_vel_msg.angular.z = u[1]
         self.cmd_vel_publisher.publish(cmd_vel_msg)
+
+if __name__ == "__main__":
+    planner = TrajectoryPlanner()
+    rospy.spin()

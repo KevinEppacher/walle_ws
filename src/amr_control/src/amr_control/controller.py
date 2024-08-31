@@ -21,9 +21,9 @@ import math
 from amr_control.visualizer import Visualizer
 
 class nMPC:
-    def __init__(self, model, obstacles=[], N=100, Q=np.diag([1, 1, 0.001]), R=np.diag([0.5, 0.05]), T=0.1):
+    def __init__(self, model, max_obstacles, N=100, Q=np.diag([0.1, 0.1, 0.001]), R=np.diag([0.05, 0.05]), T=0.1):
         self.model = model
-        self.obstacles = obstacles  # List of obstacles
+        self.n_obstacles = max_obstacles
         self.N = N
         self.Q = Q
         self.R = R
@@ -45,9 +45,9 @@ class nMPC:
     def define_optimization_problem(self):
         n_states = self.model.n_states
         n_controls = self.model.n_controls
+        n_obstacles = self.n_obstacles
         N = self.N
-        n_obstacles = len(self.obstacles)
-
+        
         U = ca.SX.sym('U', n_controls, N)
         
         P = ca.SX.sym('P', n_states + N * (n_states + n_controls) + n_obstacles * 3)
@@ -76,7 +76,7 @@ class nMPC:
         Q = self.Q
         R = self.R
         N = self.N
-        n_obstacles = len(self.obstacles)
+        n_obstacles = self.n_obstacles
 
         obj = 0
         g = []
@@ -118,7 +118,9 @@ class nMPC:
         rob_diam = self.model.diam
         return -ca.sqrt((state[0] - obs_x) ** 2 + (state[1] - obs_y) ** 2) + (rob_diam / 2 + obs_diam / 2)
 
-    def solve_mpc(self, current_state, ref_traj, target_state):
+    def solve_mpc(self, current_state, ref_traj, target_state, obstacles):
+        self.obstacles = obstacles
+        
         args = self.initialize_solver_arguments(current_state, ref_traj, target_state)
 
         # Solve the optimization problem
@@ -136,7 +138,7 @@ class nMPC:
         N = self.N
         n_states = self.model.n_states
         n_controls = self.model.n_controls
-        n_obstacles = len(self.obstacles)
+        n_obstacles = self.n_obstacles
 
         total_constraints = 3 * (N + 1) + n_obstacles * (N + 1)
 
@@ -175,6 +177,7 @@ class nMPC:
         N = self.N
         n_states = self.model.n_states
         n_controls = self.model.n_controls
+        n_obstacles = self.n_obstacles
 
         size_ref_traj = len(ref_traj)
         ref_traj_array = []
@@ -204,11 +207,17 @@ class nMPC:
             args['p'][n_states + k * (n_states + n_controls): n_states + (k + 1) * (n_states + n_controls) - 2] = [x_ref, y_ref, theta_ref]
             args['p'][n_states + (k + 1) * (n_states + n_controls) - 2: n_states + (k + 1) * (n_states + n_controls)] = [u_ref, omega_ref]
 
+        reserved_obstacles = n_obstacles - len(self.obstacles)
         # Dynamically set the obstacles
         offset = n_states + N * (n_states + n_controls)
         for i, obs in enumerate(self.obstacles):
             args['p'][offset + 3 * i: offset + 3 * (i + 1)] = obs
-            # self.obstacle.set_obstacle(args['p'][offset + 3 * i: offset + 3 * (i + 1)])
+            self.viz.publish_obstacle_marker(obs)
+            
+        offset_reserved_obstacles = offset + 3 * len(self.obstacles)
+
+        for i in range(reserved_obstacles):
+            args['p'][offset_reserved_obstacles + 3 * i: offset_reserved_obstacles + 3 * (i + 1)] = [10000, 10000, -1000]
 
         self.viz.publish_refrence_trajectory(ref_traj_array)
 
