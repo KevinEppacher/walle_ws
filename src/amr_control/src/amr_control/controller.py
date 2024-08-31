@@ -39,7 +39,7 @@ class nMPC:
         self.solver = self.define_optimization_problem()
 
     def initialize_state(self):
-        x0 = np.array([0, 0, 0])
+        x0 = np.array([0.5, 0.5, 0])
         return np.tile(x0, (self.N + 1, 1))
 
     def define_optimization_problem(self):

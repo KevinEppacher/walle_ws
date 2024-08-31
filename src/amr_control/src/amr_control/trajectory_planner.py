@@ -28,7 +28,7 @@ from amr_control.robot_model import RobotModel
 class TrajectoryPlanner:
     def __init__(self):
         rospy.init_node('nmpc_node', anonymous=True)
-        self.pose_sub = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.pose_callback)  # Subscribed to AMCL instead of odom
+        self.odom_sub = rospy.Subscriber('/odom', Odometry, self.pose_callback)
         self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.global_plan_sub = rospy.Subscriber('/move_base/NavfnROS/plan', Path, self.global_plan_callback)
         self.viz = Visualizer()
@@ -43,7 +43,6 @@ class TrajectoryPlanner:
         self.controller = nMPC(self.model, 5)
 
     def pose_callback(self, msg):
-        # Extracting position and orientation from AMCL's PoseWithCovarianceStamped message
         position = msg.pose.pose.position
         orientation = msg.pose.pose.orientation
         yaw = self.get_yaw_from_quaternion([orientation.x, orientation.y, orientation.z, orientation.w])

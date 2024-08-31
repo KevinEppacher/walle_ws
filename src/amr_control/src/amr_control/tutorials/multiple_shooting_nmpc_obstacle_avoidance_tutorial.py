@@ -134,6 +134,9 @@ ax.set_title('Robot Trajectory with Obstacle Avoidance')
 ax.legend()
 plt.grid(True)
 
+# Predicted trajectory plot
+predicted_line, = ax.plot([], [], 'g--', label='Predicted Trajectory')
+
 # Main simulation loop
 while np.linalg.norm(x0 - xs, 2) > 1e-2 and mpciter < sim_tim / T:
     args['p'] = np.concatenate((x0, xs))
@@ -157,6 +160,11 @@ while np.linalg.norm(x0 - xs, 2) > 1e-2 and mpciter < sim_tim / T:
     # Update plot
     robot_line.set_xdata(xx[0, :])
     robot_line.set_ydata(xx[1, :])
+
+    # Update predicted trajectory plot
+    predicted_line.set_xdata(xx1[-1][:, 0])
+    predicted_line.set_ydata(xx1[-1][:, 1])
+
     plt.draw()
     plt.pause(0.01)
 
@@ -168,7 +176,7 @@ print(f'Steady-state error: {ss_error}')
 plt.figure()
 plt.plot(xx[0, :], xx[1, :], 'b', label='Trajectory')
 plt.plot(xs[0], xs[1], 'ro', label='Goal')
-plt.gca().add_patch(obstacle_circle)
+plt.gca().add_patch(obstacle_circle)  # Only add obstacle once
 plt.xlabel('x')
 plt.ylabel('y')
 plt.title('Final Trajectory')
