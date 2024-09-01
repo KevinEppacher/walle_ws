@@ -21,3 +21,7 @@
 [submodule "ridgeback"]
 	path = src/ridgeback
 	url = https://github.com/ridgeback/ridgeback.git
+
+[submodule "Dataset-of-Gazebo-Worlds-Models-and-Maps"]
+	path = src/Dataset-of-Gazebo-Worlds-Models-and-Maps
+	url = https://github.com/mlherd/Dataset-of-Gazebo-Worlds-Models-and-Maps.git

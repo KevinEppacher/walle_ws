@@ -1,20 +1,43 @@
 <launch>
-    <arg name="cmd_vel_topic" default="/cmd_vel_topic_move_base" />
+    <arg name="use_sim_time" default="true" />
+    <arg name="gui" default="false" />
+    <arg name="world_name" default="$(find ridgeback_gazebo)/worlds/ridgeback_race.world" />
 
-    <!-- Launch the Gazebo simulation with the Ridgeback robot -->
-    <include file="$(find ridgeback_gazebo)/launch/ridgeback_world.launch">
-        <arg name="gui" value="false"/>
+    <!-- Robot Spawn Pose -->
+    <arg name="x" default="0"/>
+    <arg name="y" default="0"/>
+    <arg name="z" default="0.1"/>
+    <arg name="yaw" default="0"/>
+    <arg name="joystick" default="true" />
+
+    <!-- Configuration of Ridgeback which you would like to simulate.
+       See ridgeback_description for details. -->
+    <arg name="config" default="$(optenv RIDGEBACK_CONFIG base)" />
+
+    <!-- Create gazebo world -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="world_name" value="$(arg world_name)" />
+        <arg name="headless" value="false" />
+        <arg name="gui" value="$(arg gui)" />
+        <arg name="use_sim_time" value="$(arg use_sim_time)" />
+        <arg name="paused" value="false" />
+        <arg name="debug" value="false" />
     </include>
 
-    <!-- Include the odom_navigation_demo launch file -->
-    <include file="$(find ridgeback_navigation)/launch/odom_navigation_demo.launch">
-        <!-- Remap cmd_vel_topic to cmd_vel_topic_fake for all nodes included in odom_navigation_demo.launch -->
-        <remap from="cmd_vel" to="$(arg cmd_vel_topic)"/>
+    <include file="$(find ridgeback_gazebo)/launch/spawn_ridgeback.launch">
+        <arg name="config" value="$(arg config)" />
+        <arg name="x" value="$(arg x)" />
+        <arg name="y" value="$(arg y)" />
+        <arg name="z" value="$(arg z)" />
+        <arg name="yaw" value="$(arg yaw)" />
     </include>
 
-    <node pkg="map_server" name="map_server" type="map_server" args="$(find amr_control)/maps/ridgeback_world.yaml"/>   
+    <node pkg="map_server" name="map_server" type="map_server" args="$(find amr_control)/maps/ridgeback_world.yaml"/>     
 
-        <!-- Run the amcl node for adaptive Monte Carlo localization -->
+    <!-- Launch RViz for visualization -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find amr_control)/config/ridgeback_rviz_config.rviz" />
+
+   <!-- Run the amcl node for adaptive Monte Carlo localization -->
     <node pkg="amcl" type="amcl" name="amcl">
     
         <!-- AMCL parameters for particle filtering and sensor models -->
@@ -27,13 +50,13 @@
         <param name="transform_tolerance"       value="0.5"/>
         <param name="recovery_alpha_slow"       value="0.00"/>
         <param name="recovery_alpha_fast"       value="0.00"/>
-        <param name="initial_pose_x"            value="0.5"/>
-        <param name="initial_pose_y"            value="0.5"/>
+        <param name="initial_pose_x"            value="0.0"/>
+        <param name="initial_pose_y"            value="0.0"/>
         <param name="initial_pose_a"            value="0"/>
         <param name="gui_publish_rate"          value="50.0"/>
 
         <!-- Remap scan topic -->
-        <remap from="scan"                      to="/scan"/>
+        <remap from="scan"                      to="/front/scan"/>
 
         <!-- Laser sensor model parameters -->
         <param name="laser_max_range"           value="3.5"/>
@@ -56,9 +79,6 @@
         <param name="odom_frame_id"             value="odom"/>
         <param name="base_frame_id"             value="base_footprint"/>
 
-    </node>  
-
-    <!-- Launch RViz for visualization -->
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find amr_control)/config/ridgeback_rviz_config.rviz" />
+    </node>
 
 </launch>

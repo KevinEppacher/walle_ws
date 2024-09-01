@@ -1,9 +1,11 @@
 <?xml version="1.0" ?>
 <launch>
+    <arg name="world_name" default="$(find amr_control)/worlds/experiment_rooms/worlds/room4/world.model" />
+    <arg name="model" default="burger" />
 
     <!-- Create gazebo world -->
     <include file="$(find gazebo_ros)launch/empty_world.launch" >
-        <arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/turtlebot3_house.world"/>  
+        <arg name="world_name" value="$(arg world_name)"/>  
         <arg name="headless" value="false" />
         <arg name="gui" value="false" />
         <arg name="use_sim_time" value="true" />
@@ -15,13 +17,13 @@
     <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_burger.urdf.xacro"/>
 
     <!-- Spawn URDF model in Gazebo -->
-    <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model turtlebot3_burger -x 0.5 -y 0.5 -z 0.5 -Y 0 -param robot_description" />
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model turtlebot3_burger -x 0.0 -y 0.0 -z 0.1 -Y 0 -param robot_description" />
 
     <!-- Include the turtlebot3_remote.launch file -->
     <include file="$(find turtlebot3_bringup)/launch/turtlebot3_remote.launch"/>
 
     <!-- Start the map_server node to provide the map for localization -->
-    <node pkg="map_server" name="map_server" type="map_server" args="$(find amr_control)/maps/small_house_1.yaml"/>     
+    <node pkg="map_server" name="map_server" type="map_server" args="$(find amr_control)/maps/experimental_room4_map.yaml"/>     
 
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find amr_control)/config/walle_rviz_config.rviz" />
 
@@ -38,8 +40,8 @@
         <param name="transform_tolerance"       value="0.5"/>
         <param name="recovery_alpha_slow"       value="0.00"/>
         <param name="recovery_alpha_fast"       value="0.00"/>
-        <param name="initial_pose_x"            value="0.5"/>
-        <param name="initial_pose_y"            value="0.5"/>
+        <param name="initial_pose_x"            value="0.0"/>
+        <param name="initial_pose_y"            value="0.0"/>
         <param name="initial_pose_a"            value="0"/>
         <param name="gui_publish_rate"          value="50.0"/>
 
