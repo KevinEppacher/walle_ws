@@ -17,3 +17,7 @@
 [submodule "ridgeback_simulator"]
 	path = src/ridgeback_simulator
 	url = https://github.com/ridgeback/ridgeback_simulator.git
+
+[submodule "ridgeback"]
+	path = src/ridgeback
+	url = https://github.com/ridgeback/ridgeback.git

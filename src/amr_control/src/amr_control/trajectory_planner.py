@@ -34,13 +34,14 @@ class TrajectoryPlanner:
         self.viz = Visualizer()
         self.T = 0.1
         self.ref_traj = []
-        self.model = RobotModel()
         self.timer = rospy.Timer(rospy.Duration(self.T), self.controller_loop)
 
         # Zusätzliche Variablen für die Zeitmessung
         self.total_time = 0.0
         self.loop_count = 0
-        self.controller = nMPC(self.model, 5)
+        
+        self.model = RobotModel()
+        self.controller = nMPC(self.model, 3)
 
     def pose_callback(self, msg):
         position = msg.pose.pose.position
@@ -121,9 +122,9 @@ class TrajectoryPlanner:
     def compute_control_input(self):
         if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-2:
             obstacles = [
-                [4, 1, 0.3]
-                # [-2, 1, 0.5],
-                # [4, 4, 0.7],
+                [4, 1, 0.3],
+                [-2, 1, 0.5],
+                [4, 4, 0.2],
                 # [-4, 4, 0.7]
             ]
             u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, obstacles)

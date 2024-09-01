@@ -21,7 +21,7 @@ import math
 from amr_control.visualizer import Visualizer
 
 class nMPC:
-    def __init__(self, model, max_obstacles, N=100, Q=np.diag([0.1, 0.1, 0.001]), R=np.diag([0.05, 0.05]), T=0.1):
+    def __init__(self, model, max_obstacles, N=50, Q=np.diag([10, 10, 0.001]), R=np.diag([0.5, 0.05]), T=0.1):
         self.model = model
         self.n_obstacles = max_obstacles
         self.N = N
@@ -208,8 +208,10 @@ class nMPC:
             args['p'][n_states + (k + 1) * (n_states + n_controls) - 2: n_states + (k + 1) * (n_states + n_controls)] = [u_ref, omega_ref]
 
         reserved_obstacles = n_obstacles - len(self.obstacles)
+        
         # Dynamically set the obstacles
         offset = n_states + N * (n_states + n_controls)
+        
         for i, obs in enumerate(self.obstacles):
             args['p'][offset + 3 * i: offset + 3 * (i + 1)] = obs
             self.viz.publish_obstacle_marker(obs)
