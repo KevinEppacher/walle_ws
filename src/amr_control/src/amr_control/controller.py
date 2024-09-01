@@ -16,7 +16,7 @@ import math
 from amr_control.visualizer import Visualizer
 
 class nMPC:
-    def __init__(self, model, max_obstacles, N=100, Q=np.diag([10, 10, 0.001]), R=np.diag([0.5, 0.05]), T=0.1):
+    def __init__(self, model, max_obstacles, N=70, Q=np.diag([10, 10, 0.001]), R=np.diag([0.5, 0.05]), T=0.1):
         self.model = model
         self.n_obstacles = max_obstacles
         self.N = N
@@ -102,6 +102,7 @@ class nMPC:
     def solve_mpc(self, current_state, ref_traj, target_state, obstacles):
         self.obstacles = obstacles
         self.target_state = target_state
+        n_obstacles = self.n_obstacles
         N = self.N
 
         args = {
@@ -158,10 +159,17 @@ class nMPC:
             args['p'][self.model.n_states + k * (self.model.n_states + self.model.n_controls):self.model.n_states + (k + 1) * (self.model.n_states + self.model.n_controls) - 2] = [x_ref, y_ref, theta_ref]
             args['p'][self.model.n_states + (k + 1) * (self.model.n_states + self.model.n_controls) - 2:self.model.n_states + (k + 1) * (self.model.n_states + self.model.n_controls)] = [u_ref, omega_ref]
 
+        reserved_obstacles = n_obstacles - len(self.obstacles)
+
         offset = self.model.n_states + self.N * (self.model.n_states + self.model.n_controls)
         
         for i, obs in enumerate(self.obstacles):
             args['p'][offset + 3 * i: offset + 3 * (i + 1)] = obs
+            
+        offset_reserved_obstacles = offset + 3 * len(self.obstacles)
+
+        for i in range(reserved_obstacles):
+            args['p'][offset_reserved_obstacles + 3 * i: offset_reserved_obstacles + 3 * (i + 1)] = [10000, 10000, -1000]
             
             self.viz.publish_obstacle_marker(obs)
 

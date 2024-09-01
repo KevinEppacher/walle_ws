@@ -129,7 +129,7 @@ class TrajectoryPlanner:
     def compute_control_input(self):
         if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-2:
             obstacles = [
-                [1, 0.2, 0.6],
+                [1, 0.2, 0.3],
                 [-2, 1, 0.2]
                 # [4, 0, 0.2],
                 # [-4, 4, 0.7]
