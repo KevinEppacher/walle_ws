@@ -40,7 +40,7 @@ class TrajectoryPlanner:
         self.loop_count = 0
         
         self.model = RobotModel()
-        self.controller = nMPC(self.model, 3)
+        self.controller = nMPC(self.model, 2)
         self.current_state = np.array([0.0, 0.0, 0.0])  # Initialisiere mit einer Standardpose
 
     def get_robot_pose(self):
@@ -122,15 +122,15 @@ class TrajectoryPlanner:
         # Berechnung der kumulierten durchschnittlichen Taktzeit
         average_loop_time = self.total_time / self.loop_count
 
-        # Ausgabe der Taktzeit und der durchschnittlichen Taktzeit
-        rospy.loginfo(f"Taktzeit: {loop_time:.4f} Sekunden")
-        rospy.loginfo(f"Kumulierte durchschnittliche Taktzeit: {average_loop_time:.4f} Sekunden")
+        # # Ausgabe der Taktzeit und der durchschnittlichen Taktzeit
+        # rospy.loginfo(f"Taktzeit: {loop_time:.4f} Sekunden")
+        # rospy.loginfo(f"Kumulierte durchschnittliche Taktzeit: {average_loop_time:.4f} Sekunden")
 
     def compute_control_input(self):
         if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-2:
             obstacles = [
-                [3, 0, 0.3],
-                [-2, 1, 0.5]
+                [1, 0.2, 0.6],
+                [-2, 1, 0.2]
                 # [4, 0, 0.2],
                 # [-4, 4, 0.7]
             ]

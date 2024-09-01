@@ -16,7 +16,7 @@ import math
 from amr_control.visualizer import Visualizer
 
 class nMPC:
-    def __init__(self, model, max_obstacles, N=50, Q=np.diag([10, 10, 0.001]), R=np.diag([0.5, 0.05]), T=0.1):
+    def __init__(self, model, max_obstacles, N=100, Q=np.diag([10, 10, 0.001]), R=np.diag([0.5, 0.05]), T=0.1):
         self.model = model
         self.n_obstacles = max_obstacles
         self.N = N
@@ -28,8 +28,11 @@ class nMPC:
         self.viz = Visualizer()
 
         self.u0 = np.zeros((N, 2))
-        self.X0 = np.tile(np.array([0.0, 0.0, 0.0]), (self.N + 1, 1))
+        self.x0 = np.array([0, 0, 0])
+        self.xx = np.zeros((3, 1))
+        self.xx[:, 0] = self.x0
         self.xx1 = []
+        self.X0 = np.tile(self.x0, (self.N + 1, 1))
         
         self.solver = self.define_optimization_problem()
 
@@ -108,13 +111,21 @@ class nMPC:
             'ubx': np.full((3 * (self.N + 1) + 2 * self.N, 1), ca.inf),
             'p': np.zeros((self.model.n_states + self.N * (self.model.n_states + self.model.n_controls) + 3 * self.n_obstacles,))
         }
+        
+        # State bounds
+        args['lbx'][0:3 * (N + 1):3] = -200
+        args['ubx'][0:3 * (N + 1):3] = 200
+        args['lbx'][1:3 * (N + 1):3] = -200
+        args['ubx'][1:3 * (N + 1):3] = 200
+        args['lbx'][2:3 * (N + 1):3] = -ca.inf
+        args['ubx'][2:3 * (N + 1):3] = ca.inf
 
         args['lbx'][3 * (self.N + 1)::2] = self.v_min
         args['ubx'][3 * (self.N + 1)::2] = self.v_max
         args['lbx'][3 * (self.N + 1) + 1::2] = self.omega_min
         args['ubx'][3 * (self.N + 1) + 1::2] = self.omega_max
         args['p'][0:3] = current_state
-
+        
         size_ref_traj = len(ref_traj)
         
         ref_traj_array = []
@@ -148,19 +159,34 @@ class nMPC:
             args['p'][self.model.n_states + (k + 1) * (self.model.n_states + self.model.n_controls) - 2:self.model.n_states + (k + 1) * (self.model.n_states + self.model.n_controls)] = [u_ref, omega_ref]
 
         offset = self.model.n_states + self.N * (self.model.n_states + self.model.n_controls)
+        
         for i, obs in enumerate(self.obstacles):
             args['p'][offset + 3 * i: offset + 3 * (i + 1)] = obs
+            
             self.viz.publish_obstacle_marker(obs)
 
         args['x0'] = np.concatenate((self.X0.T.flatten(), self.u0.T.flatten()))
+        
         sol = self.solver(x0=args['x0'], lbx=args['lbx'], ubx=args['ubx'], lbg=args['lbg'], ubg=args['ubg'], p=args['p'])
 
         u = np.reshape(sol['x'][3 * (self.N + 1):].full(), (self.N, 2))
+        
         self.u0 = np.vstack((u[1:, :], u[-1, :]))
+        
         self.xx1.append(np.reshape(sol['x'][:3 * (self.N + 1)].full(), (self.N + 1, 3)))
+        
+        self.X0 = np.vstack((self.xx1[-1][1:], self.xx1[-1][-1, :]))
+        
+        f_value = self.model.f(self.x0, u[0, :]).full().flatten()
+        
+        self.x0 = self.x0 + self.T * f_value
+        
+        self.xx = np.hstack((self.xx, self.x0[:, None]))
+        
         self.X0 = np.vstack((self.xx1[-1][1:], self.xx1[-1][-1, :]))
 
         self.viz.publish_predicted_trajectory(self.xx1[-1])
+        
         return u[0]
 
     def get_yaw_from_quaternion(self, quaternion):
