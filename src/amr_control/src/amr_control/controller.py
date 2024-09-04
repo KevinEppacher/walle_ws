@@ -16,7 +16,7 @@ import math
 from amr_control.visualizer import Visualizer
 
 class nMPC:
-    def __init__(self, model, max_obstacles, N=70, Q=np.diag([10, 10, 0.001]), R=np.diag([0.5, 0.05]), T=0.1):
+    def __init__(self, model, max_obstacles, N=10, Q=np.diag([10, 10, 0.001]), R=np.diag([0.5, 0.05]), T=0.1):
         self.model = model
         self.n_obstacles = max_obstacles
         self.N = N
@@ -104,6 +104,7 @@ class nMPC:
         self.target_state = target_state
         n_obstacles = self.n_obstacles
         N = self.N
+        T = self.T
 
         args = {
             'lbg': np.concatenate((np.zeros((3 * (self.N + 1), 1)), np.full((self.n_obstacles * (self.N + 1), 1), -np.inf))),
@@ -144,11 +145,10 @@ class nMPC:
                     ref_traj[k].pose.orientation.w
                 ])
                 theta_ref = self.normalize_angle(theta_ref)
-                u_ref = 10
+                u_ref = 0.5
                 omega_ref = 0
                                         
             if size_ref_traj < N:
-                # Use reference trajectory from ref_traj if available
                 x_ref = self.target_state[0]
                 y_ref = self.target_state[1]
                 theta_ref = self.target_state[2]
@@ -162,39 +162,41 @@ class nMPC:
         reserved_obstacles = n_obstacles - len(self.obstacles)
 
         offset = self.model.n_states + self.N * (self.model.n_states + self.model.n_controls)
+        offset_reserved_obstacles = offset + 3 * len(self.obstacles)
         
         for i, obs in enumerate(self.obstacles):
             args['p'][offset + 3 * i: offset + 3 * (i + 1)] = obs
-            
-        offset_reserved_obstacles = offset + 3 * len(self.obstacles)
+            self.viz.publish_obstacle_marker(obs)
 
         for i in range(reserved_obstacles):
             args['p'][offset_reserved_obstacles + 3 * i: offset_reserved_obstacles + 3 * (i + 1)] = [10000, 10000, -1000]
             
-            self.viz.publish_obstacle_marker(obs)
+        
+        self.viz.publish_refrence_trajectory(ref_traj_array)
 
         args['x0'] = np.concatenate((self.X0.T.flatten(), self.u0.T.flatten()))
         
         sol = self.solver(x0=args['x0'], lbx=args['lbx'], ubx=args['ubx'], lbg=args['lbg'], ubg=args['ubg'], p=args['p'])
 
         u = np.reshape(sol['x'][3 * (self.N + 1):].full(), (self.N, 2))
-        
+                        
+        # Throw away the first optimal control input and shift the rest (Dimension: N x 2)                        
         self.u0 = np.vstack((u[1:, :], u[-1, :]))
         
+        # Store the first optimal state and shift the rest (Dimension: N+1 x 3)        
         self.xx1.append(np.reshape(sol['x'][:3 * (self.N + 1)].full(), (self.N + 1, 3)))
-        
-        self.X0 = np.vstack((self.xx1[-1][1:], self.xx1[-1][-1, :]))
+                
         
         f_value = self.model.f(self.x0, u[0, :]).full().flatten()
         
-        self.x0 = self.x0 + self.T * f_value
+        self.x0 = self.x0 + T * f_value
         
         self.xx = np.hstack((self.xx, self.x0[:, None]))
         
         self.X0 = np.vstack((self.xx1[-1][1:], self.xx1[-1][-1, :]))
 
         self.viz.publish_predicted_trajectory(self.xx1[-1])
-        
+                
         return u[0]
 
     def get_yaw_from_quaternion(self, quaternion):
