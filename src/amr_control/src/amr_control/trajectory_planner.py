@@ -40,7 +40,7 @@ class TrajectoryPlanner:
         self.loop_count = 0
         
         self.model = RobotModel()
-        self.controller = nMPC(self.model, 1)
+        self.controller = nMPC(self.model, 3)
         self.current_state = np.array([0.0, 0.0, 0.0])  # Initialisiere mit einer Standardpose
 
     def get_robot_pose(self):
@@ -133,9 +133,9 @@ class TrajectoryPlanner:
     def compute_control_input(self):
         if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-2:
             obstacles = [
-                [1, 0.5, 0.2]
-                # [1, 0.2, 0.3]
-                # [4, 0, 0.2],
+                [1, 0.3, 0.3],
+                [4, 0, 0.2],
+                [3, 0.2, 0.3]
                 # [-4, 4, 0.7]
             ]
             u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, obstacles)
