@@ -40,8 +40,16 @@ class TrajectoryPlanner:
         self.loop_count = 0
         
         self.model = RobotModel()
-        self.controller = nMPC(self.model, 3)
+        self.controller = nMPC(self.model, 1)
         self.current_state = np.array([0.0, 0.0, 0.0])  # Initialisiere mit einer Standardpose
+        
+        self.obstacles = [
+                [1, 0.3, 0.3]
+                # [4, 0, 0.2],
+                # [3, 0.2, 0.3]
+                # [-4, 4, 0.7]
+            ]
+        self.angle = 0
 
     def get_robot_pose(self):
         try:
@@ -55,6 +63,7 @@ class TrajectoryPlanner:
     def global_plan_callback(self, msg):
         self.ref_traj = self.adjust_waypoint_orientations(msg.poses)
         size_global_plan = len(msg.poses)
+        print(f"Global plan size: {size_global_plan}")
         target_pose = self.ref_traj[size_global_plan-1].pose
         yaw = self.get_yaw_from_quaternion([
             target_pose.orientation.x,
@@ -132,13 +141,16 @@ class TrajectoryPlanner:
 
     def compute_control_input(self):
         if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-2:
-            obstacles = [
-                [1, 0.3, 0.3],
-                [4, 0, 0.2],
-                [3, 0.2, 0.3]
-                # [-4, 4, 0.7]
-            ]
-            u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, obstacles)
+            # obstacles = [
+            #     [1, 0.3, 0.3]
+            #     # [4, 0, 0.2],
+            #     # [3, 0.2, 0.3]
+            #     # [-4, 4, 0.7]
+            # ]
+            self.angle += 0.001
+            self.obstacles[0][0] = cos(self.angle)*2
+            self.obstacles[0][1] = sin(self.angle)*2
+            u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, self.obstacles)
             self.publish_cmd_vel(u)
         else:
             u = [0, 0]

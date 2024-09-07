@@ -94,8 +94,8 @@ class nMPC:
         opts = {'ipopt.max_iter': 2000,
                 'ipopt.print_level': 0,
                 'print_time': 0,
-                'ipopt.acceptable_tol': 1e-10,
-                'ipopt.acceptable_obj_change_tol': 1e-8}
+                'ipopt.acceptable_tol': 1e-8,
+                'ipopt.acceptable_obj_change_tol': 1e-6}
 
         return ca.nlpsol('solver', 'ipopt', nlp_prob, opts)
 
@@ -116,10 +116,10 @@ class nMPC:
         }
         
         # State bounds
-        args['lbx'][0:3 * (N + 1):3] = -200
-        args['ubx'][0:3 * (N + 1):3] = 200
-        args['lbx'][1:3 * (N + 1):3] = -200
-        args['ubx'][1:3 * (N + 1):3] = 200
+        args['lbx'][0:3 * (N + 1):3] = -ca.inf
+        args['ubx'][0:3 * (N + 1):3] = ca.inf
+        args['lbx'][1:3 * (N + 1):3] = -ca.inf
+        args['ubx'][1:3 * (N + 1):3] = ca.inf
         args['lbx'][2:3 * (N + 1):3] = -ca.inf
         args['ubx'][2:3 * (N + 1):3] = ca.inf
 
@@ -133,7 +133,7 @@ class nMPC:
         
         ref_traj_array = []
 
-        for k in range(self.N):
+        for k in range(0, self.N, 1):
             if k < size_ref_traj:
                 ref_traj_array.append(ref_traj[k].pose)
                 # Use reference trajectory from ref_traj if available
