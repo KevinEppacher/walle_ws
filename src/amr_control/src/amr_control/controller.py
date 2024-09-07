@@ -16,7 +16,7 @@ import math
 from amr_control.visualizer import Visualizer
 
 class nMPC:
-    def __init__(self, model, max_obstacles, N=100, Q=np.diag([10, 10, 0.001]), R=np.diag([0.5, 0.05]), T=0.1):
+    def __init__(self, model, max_obstacles, N=30, Q=np.diag([10, 10, 0.001]), R=np.diag([0.5, 0.05]), T=0.2):
         self.model = model
         self.n_obstacles = max_obstacles
         self.N = N
@@ -130,26 +130,26 @@ class nMPC:
         args['p'][0:3] = current_state
         
         size_ref_traj = len(ref_traj)
-        
         ref_traj_array = []
 
-        for k in range(0, self.N, 1):
-            if k < size_ref_traj:
-                ref_traj_array.append(ref_traj[k].pose)
-                # Use reference trajectory from ref_traj if available
-                x_ref = ref_traj[k].pose.position.x
-                y_ref = ref_traj[k].pose.position.y
+        # Verwenden Sie jeden zweiten Punkt in der Referenztrajektorie
+        for k in range(self.N):
+            if k * 2 < size_ref_traj:  # Überprüfen, ob k*2 innerhalb der Grenzen der Liste liegt
+                ref_traj_array.append(ref_traj[k * 2].pose)
+                # Verwenden Sie die Referenztrajektorie, wenn verfügbar
+                x_ref = ref_traj[k * 2].pose.position.x
+                y_ref = ref_traj[k * 2].pose.position.y
                 theta_ref = self.get_yaw_from_quaternion([
-                    ref_traj[k].pose.orientation.x,
-                    ref_traj[k].pose.orientation.y,
-                    ref_traj[k].pose.orientation.z,
-                    ref_traj[k].pose.orientation.w
+                    ref_traj[k * 2].pose.orientation.x,
+                    ref_traj[k * 2].pose.orientation.y,
+                    ref_traj[k * 2].pose.orientation.z,
+                    ref_traj[k * 2].pose.orientation.w
                 ])
                 theta_ref = self.normalize_angle(theta_ref)
                 u_ref = 0.5
                 omega_ref = 0
-                                        
-            if size_ref_traj < N:
+            else:
+                # Verwenden Sie die Zielzustände, wenn die Referenztrajektorie erschöpft ist
                 x_ref = self.target_state[0]
                 y_ref = self.target_state[1]
                 theta_ref = self.target_state[2]
@@ -157,8 +157,10 @@ class nMPC:
                 u_ref = 0
                 omega_ref = 0
 
+            # Füllen Sie das args['p']-Array entsprechend den Referenzwerten
             args['p'][self.model.n_states + k * (self.model.n_states + self.model.n_controls):self.model.n_states + (k + 1) * (self.model.n_states + self.model.n_controls) - 2] = [x_ref, y_ref, theta_ref]
             args['p'][self.model.n_states + (k + 1) * (self.model.n_states + self.model.n_controls) - 2:self.model.n_states + (k + 1) * (self.model.n_states + self.model.n_controls)] = [u_ref, omega_ref]
+
 
         reserved_obstacles = n_obstacles - len(self.obstacles)
 
@@ -177,17 +179,17 @@ class nMPC:
 
         args['x0'] = np.concatenate((self.X0.T.flatten(), self.u0.T.flatten()))
         
-        start_time = rospy.Time.now()  # Startzeit mit ROS-Zeitstempel
+        # start_time = rospy.Time.now()  # Startzeit mit ROS-Zeitstempel
         
         sol = self.solver(x0=args['x0'], lbx=args['lbx'], ubx=args['ubx'], lbg=args['lbg'], ubg=args['ubg'], p=args['p'])
         
-        end_time = rospy.Time.now()  # Endzeit mit ROS-Zeitstempel
-        loop_time = (end_time - start_time).to_sec()  # Taktzeit berechnen in Sekunden
-        if loop_time > 0.1:
-            rospy.logwarn(f"Taktzeit: {loop_time:.4f} Sekunden")
-        else:
-            # Ausgabe der Taktzeit und der durchschnittlichen Taktzeit
-            rospy.loginfo(f"Taktzeit: {loop_time:.4f} Sekunden")
+        # end_time = rospy.Time.now()  # Endzeit mit ROS-Zeitstempel
+        # loop_time = (end_time - start_time).to_sec()  # Taktzeit berechnen in Sekunden
+        # if loop_time > 0.1:
+        #     rospy.logwarn(f"Taktzeit: {loop_time:.4f} Sekunden")
+        # else:
+        #     # Ausgabe der Taktzeit und der durchschnittlichen Taktzeit
+        #     rospy.loginfo(f"Taktzeit: {loop_time:.4f} Sekunden")
 
         u = np.reshape(sol['x'][3 * (self.N + 1):].full(), (self.N, 2))
                         

@@ -31,17 +31,17 @@ class TrajectoryPlanner:
         self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.global_plan_sub = rospy.Subscriber('/move_base/NavfnROS/plan', Path, self.global_plan_callback)
         self.viz = Visualizer()
-        self.T = 0.1
         self.ref_traj = []
-        self.timer = rospy.Timer(rospy.Duration(self.T), self.controller_loop)
 
         # Zusätzliche Variablen für die Zeitmessung
         self.total_time = 0.0
-        self.loop_count = 0
-        
+        self.loop_count = 0.0
+                
         self.model = RobotModel()
-        self.controller = nMPC(self.model, 1)
+        self.controller = nMPC(self.model, 10)
+        self.T = 0.01
         self.current_state = np.array([0.0, 0.0, 0.0])  # Initialisiere mit einer Standardpose
+        self.timer = rospy.Timer(rospy.Duration(self.T), self.controller_loop)
         
         self.obstacles = [
                 [1, 0.3, 0.3]
@@ -59,11 +59,14 @@ class TrajectoryPlanner:
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             rospy.logwarn("Unable to get robot pose from TF")
             return None
+        
+    def trajectory_interpolation(self, ref_traj):
+        self.prediction_distance = 1.5
+
 
     def global_plan_callback(self, msg):
         self.ref_traj = self.adjust_waypoint_orientations(msg.poses)
         size_global_plan = len(msg.poses)
-        print(f"Global plan size: {size_global_plan}")
         target_pose = self.ref_traj[size_global_plan-1].pose
         yaw = self.get_yaw_from_quaternion([
             target_pose.orientation.x,
@@ -131,11 +134,11 @@ class TrajectoryPlanner:
         # Berechnung der kumulierten durchschnittlichen Taktzeit
         average_loop_time = self.total_time / self.loop_count
 
-        # if loop_time > 0.1:
-        #     rospy.logwarn(f"Taktzeit: {loop_time:.4f} Sekunden")
-        # else:
-        #     # Ausgabe der Taktzeit und der durchschnittlichen Taktzeit
-        #     rospy.loginfo(f"Taktzeit: {loop_time:.4f} Sekunden")
+        if loop_time > 0.1:
+            rospy.logwarn(f"Taktzeit: {loop_time:.4f} Sekunden")
+        else:
+            # Ausgabe der Taktzeit und der durchschnittlichen Taktzeit
+            rospy.loginfo(f"Taktzeit: {loop_time:.4f} Sekunden")
             
         # rospy.loginfo(f"Kumulierte durchschnittliche Taktzeit: {average_loop_time:.4f} Sekunden")
 
