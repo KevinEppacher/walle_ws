@@ -1,11 +1,11 @@
 Panels:
   - Class: rviz/Displays
-    Help Height: 78
+    Help Height: 0
     Name: Displays
     Property Tree Widget:
       Expanded: ~
       Splitter Ratio: 0.5
-    Tree Height: 322
+    Tree Height: 400
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -226,7 +226,7 @@ Visualization Manager:
       Marker Topic: /obstacle_marker
       Name: Marker
       Namespaces:
-        {}
+        obstacle: true
       Queue Size: 100
       Value: true
     - Alpha: 0.699999988079071
@@ -328,7 +328,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 9.9100341796875
+      Distance: 5.075284004211426
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -336,17 +336,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 3.43523907661438
-        Y: -1.4651559591293335
-        Z: 1.6689300537109375e-06
+        X: 2.0097146034240723
+        Y: -0.7079622149467468
+        Z: 2.1457672119140625e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 1.5597963333129883
       Target Frame: <Fixed Frame>
-      Yaw: 4.730388641357422
+      Yaw: 4.710388660430908
     Saved: ~
 Window Geometry:
   Displays:

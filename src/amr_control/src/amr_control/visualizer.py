@@ -70,17 +70,31 @@ class Visualizer:
 
         for pose in refrence_trajectory:
             new_pose = Pose()
-            new_pose.position.x = pose.position.x
-            new_pose.position.y = pose.position.y
-            new_pose.position.z = pose.position.z  # Falls relevant
 
-            # Wenn die Orientierung bereits korrekt ist, können Sie sie direkt übernehmen
-            new_pose.orientation.x = pose.orientation.x
-            new_pose.orientation.y = pose.orientation.y
-            new_pose.orientation.z = pose.orientation.z
-            new_pose.orientation.w = pose.orientation.w
+            if isinstance(pose, Pose):
+                # Wenn das Element bereits eine Pose ist, direkt übernehmen
+                new_pose.position.x = pose.position.x
+                new_pose.position.y = pose.position.y
+                new_pose.position.z = pose.position.z
+
+                new_pose.orientation.x = pose.orientation.x
+                new_pose.orientation.y = pose.orientation.y
+                new_pose.orientation.z = pose.orientation.z
+                new_pose.orientation.w = pose.orientation.w
+
+            else:
+                # Wenn es sich um eine Liste [x, y, yaw] handelt, in Pose umwandeln
+                new_pose.position.x = pose[0]
+                new_pose.position.y = pose[1]
+                new_pose.position.z = 0.0  # Standard z-Wert
+
+                # Konvertiere den yaw-Wert in ein Quaternion
+                quaternion = tf.transformations.quaternion_from_euler(0, 0, pose[2])
+                new_pose.orientation.x = quaternion[0]
+                new_pose.orientation.y = quaternion[1]
+                new_pose.orientation.z = quaternion[2]
+                new_pose.orientation.w = quaternion[3]
 
             pose_array.poses.append(new_pose)
 
         self.refrence_pose_array_pub.publish(pose_array)
-

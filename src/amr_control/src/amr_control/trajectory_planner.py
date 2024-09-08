@@ -18,6 +18,7 @@ from casadi.tools import *
 # Other imports
 import numpy as np
 import math
+from scipy.interpolate import interp1d
 
 from amr_control.visualizer import Visualizer
 from amr_control.obstacle import Obstacle
@@ -27,6 +28,9 @@ from amr_control.robot_model import RobotModel
 class TrajectoryPlanner:
     def __init__(self):
         rospy.init_node('nmpc_node', anonymous=True)
+        
+        self.u = [0, 0]  # Hier wird die Steuergröße initialisiert
+        
         self.tf_listener = tf.TransformListener()
         self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.global_plan_sub = rospy.Subscriber('/move_base/NavfnROS/plan', Path, self.global_plan_callback)
@@ -59,29 +63,45 @@ class TrajectoryPlanner:
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             rospy.logwarn("Unable to get robot pose from TF")
             return None
-        
-    def trajectory_interpolation(self, ref_traj):
-        self.prediction_distance = 1.5
-
-
+    
+    
     def global_plan_callback(self, msg):
+        # Prüfe, ob es Wegpunkte im globalen Plan gibt
+        if len(msg.poses) == 0:
+            rospy.logwarn("Received empty global plan. Skipping.")
+            return
+
+        # Extrahiere (x, y, yaw) für jede Pose in der globalen Plan-Nachricht
         self.ref_traj = self.adjust_waypoint_orientations(msg.poses)
-        size_global_plan = len(msg.poses)
-        target_pose = self.ref_traj[size_global_plan-1].pose
-        yaw = self.get_yaw_from_quaternion([
-            target_pose.orientation.x,
-            target_pose.orientation.y,
-            target_pose.orientation.z,
-            target_pose.orientation.w
-        ])
-        self.target_state = np.array([target_pose.position.x, target_pose.position.y, yaw])
+
+        # Überprüfe, ob die resultierende ref_traj nach der Anpassung nicht leer ist
+        if len(self.ref_traj) == 0:
+            rospy.logwarn("Adjusted reference trajectory is empty. Skipping.")
+            return
+
+        # Setze das Ziel auf den letzten Punkt in der Trajektorie
+        self.target_state = self.ref_traj[-1]
+
+        # Berechne die interpolierte Trajektorie und passe T entsprechend an
+        self.prediction_distance = 2.0
+        self.ref_traj, self.T = self.interpolate_trajectory(self.ref_traj, self.prediction_distance, self.controller.N, self.controller.v_max, 1.1)
+
+
 
     def adjust_waypoint_orientations(self, poses):
+        """
+        Berechnet die Orientierung (Yaw) für jede Pose basierend auf der Richtung zum nächsten Punkt.
+        
+        :param poses: Liste von Posen (geometry_msgs/Pose) 
+        :return: Array von Wegpunkten [(x, y, yaw)], wobei yaw die berechnete Orientierung ist
+        """
         if len(poses) < 2:
-            return poses  # Wenn es weniger als 2 Punkte gibt, gibt es nichts zu tun
+            return np.array([])  # Wenn es weniger als 2 Punkte gibt, gibt es nichts zu tun
+
+        waypoints_with_yaw = []
 
         for i in range(len(poses) - 1):
-            # Aktueller und nächster Punkt
+            # Aktuelle und nächste Pose
             current_pose = poses[i].pose
             next_pose = poses[i + 1].pose
 
@@ -90,16 +110,85 @@ class TrajectoryPlanner:
             dy = next_pose.position.y - current_pose.position.y
             yaw = math.atan2(dy, dx)
             yaw = self.normalize_angle(yaw)
-            # Konvertiere den Yaw-Winkel in ein Quaternion
-            quaternion = quaternion_from_euler(0, 0, yaw)
 
-            # Aktualisiere die Orientierung des aktuellen Waypoints
-            current_pose.orientation.x = quaternion[0]
-            current_pose.orientation.y = quaternion[1]
-            current_pose.orientation.z = quaternion[2]
-            current_pose.orientation.w = quaternion[3]
+            # Füge den aktuellen Punkt mit (x, y, yaw) zur Liste hinzu
+            waypoints_with_yaw.append([current_pose.position.x, current_pose.position.y, yaw])
 
-        return poses
+        # Füge den letzten Punkt mit der gleichen Orientierung hinzu wie der vorletzte Punkt
+        last_pose = poses[-1].pose
+        last_yaw = waypoints_with_yaw[-1][2]  # Übernehme die letzte berechnete Yaw-Orientierung
+        waypoints_with_yaw.append([last_pose.position.x, last_pose.position.y, last_yaw])
+
+        # Rückgabe als NumPy-Array
+        return np.array(waypoints_with_yaw)
+    
+    def interpolate_trajectory(self, ref_traj, total_prediction_distance, N, robot_maximum_speed, scale_factor=1.5):
+        """
+        Interpolates or reduces the given trajectory to exactly N points, including orientation (Yaw).
+        Only keeps waypoints that are within the total prediction distance.
+        
+        :param ref_traj: list of waypoints (x, y, yaw) as reference trajectory
+        :param total_prediction_distance: total distance for MPC prediction
+        :param N: number of prediction points in MPC
+        :param robot_max_speed: maximum speed of the robot
+        :param scale_factor: scale factor to adjust reference trajectory distance (default 1.1)
+        :return: Interpolated or reduced reference trajectory as a list of waypoints with orientation
+        """
+
+        # Verarbeite die Trajektorie nur, wenn sie mehrdimensional ist
+        ref_traj_array = np.array(ref_traj)
+        if ref_traj_array.ndim == 1:
+            raise ValueError("Ref_traj has only one dimension, expected (x, y, yaw) format.")
+
+        # Berechne die Distanzen zwischen den Punkten der aktuellen Referenz-Trajektorie
+        ref_points = ref_traj_array[:, :2]  # Nur x, y für Distanzen berechnen
+        yaw_angles = ref_traj_array[:, 2]  # Yaw-Winkel (Orientierung) separat speichern
+        distances = np.sqrt(np.sum(np.diff(ref_points, axis=0) ** 2, axis=1))
+        cumulative_distances = np.insert(np.cumsum(distances), 0, 0)
+
+        # Nur die Waypoints behalten, die innerhalb der totalen Prediction-Distanz liegen
+        within_distance_mask = cumulative_distances <= total_prediction_distance
+        ref_points_within_distance = ref_points[within_distance_mask]
+        yaw_within_distance = yaw_angles[within_distance_mask]
+        cumulative_distances_within = cumulative_distances[within_distance_mask]
+
+        # Falls die Anzahl der Punkte nicht ausreicht, füge den letzten Punkt hinzu
+        if len(ref_points_within_distance) < 2:
+            ref_points_within_distance = np.vstack([ref_points_within_distance, ref_points[-1]])
+            yaw_within_distance = np.append(yaw_within_distance, yaw_angles[-1])
+            cumulative_distances_within = np.append(cumulative_distances_within, total_prediction_distance)
+
+        # Gesamtdistanz der Referenz-Trajektorie
+        total_ref_distance = cumulative_distances_within[-1]
+
+        # Skalierte Distanz zwischen den Punkten in der Referenztrajektorie
+        scaled_total_distance = total_ref_distance * scale_factor
+
+        # Berechne die Zeit für jede Vorhersage basierend auf der maximalen Geschwindigkeit
+        prediction_distance = total_prediction_distance / N
+        T = prediction_distance / robot_maximum_speed
+
+        T = T * 0.8
+
+        # Interpolierte Positionen basierend auf der Gesamtzahl der gewünschten Punkte N
+        new_distances = np.linspace(0, total_ref_distance, N)
+
+        # Interpolation für x und y separat
+        interp_x = interp1d(cumulative_distances_within, ref_points_within_distance[:, 0], kind='linear', fill_value="extrapolate")
+        interp_y = interp1d(cumulative_distances_within, ref_points_within_distance[:, 1], kind='linear', fill_value="extrapolate")
+
+        new_points_x = interp_x(new_distances)
+        new_points_y = interp_y(new_distances)
+
+        # Interpolation der Yaw-Winkel
+        interp_yaw = interp1d(cumulative_distances_within, yaw_within_distance, kind='linear', fill_value="extrapolate")
+        new_yaw_angles = interp_yaw(new_distances)
+
+        # Erstelle eine neue Trajektorie mit x, y und yaw
+        new_trajectory = np.column_stack((new_points_x, new_points_y, new_yaw_angles))
+        
+        return new_trajectory, T
+
     
     def normalize_angle(self, angle):
         return (angle + math.pi) % (2 * math.pi) - math.pi
@@ -127,21 +216,12 @@ class TrajectoryPlanner:
         end_time = rospy.Time.now()  # Endzeit mit ROS-Zeitstempel
         loop_time = (end_time - start_time).to_sec()  # Taktzeit berechnen in Sekunden
 
-        # Aktualisierung der Gesamtzeit und des Schleifenzählers
-        self.total_time += loop_time
-        self.loop_count += 1
-
-        # Berechnung der kumulierten durchschnittlichen Taktzeit
-        average_loop_time = self.total_time / self.loop_count
-
         if loop_time > 0.1:
             rospy.logwarn(f"Taktzeit: {loop_time:.4f} Sekunden")
         else:
             # Ausgabe der Taktzeit und der durchschnittlichen Taktzeit
             rospy.loginfo(f"Taktzeit: {loop_time:.4f} Sekunden")
             
-        # rospy.loginfo(f"Kumulierte durchschnittliche Taktzeit: {average_loop_time:.4f} Sekunden")
-
     def compute_control_input(self):
         if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-2:
             # obstacles = [
@@ -153,11 +233,11 @@ class TrajectoryPlanner:
             self.angle += 0.001
             self.obstacles[0][0] = cos(self.angle)*2
             self.obstacles[0][1] = sin(self.angle)*2
-            u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, self.obstacles)
-            self.publish_cmd_vel(u)
+            self.u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, self.T, self.obstacles)
+            self.publish_cmd_vel(self.u)
         else:
-            u = [0, 0]
-            self.publish_cmd_vel(u)
+            self.u = [0, 0]
+            self.publish_cmd_vel(self.u)
             rospy.loginfo("Target reached")        
 
     def publish_cmd_vel(self, u):

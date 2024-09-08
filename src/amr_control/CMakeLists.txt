@@ -93,3 +93,13 @@ catkin_install_python(PROGRAMS
   src/amr_control/obstacle_detection.py 
 DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+############################################################
+# CMakelist for trajectory_interpolation_test node
+############################################################
+
+# Install Python scripts
+catkin_install_python(PROGRAMS
+  src/amr_control/trajectory_interpolation_test.py 
+DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
