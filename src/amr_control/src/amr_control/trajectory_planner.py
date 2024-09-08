@@ -48,10 +48,10 @@ class TrajectoryPlanner:
         self.timer = rospy.Timer(rospy.Duration(self.T), self.controller_loop)
         
         self.obstacles = [
-                [1, 0.3, 0.3]
-                # [4, 0, 0.2],
-                # [3, 0.2, 0.3]
-                # [-4, 4, 0.7]
+                [1, 0.3, 0.1],
+                [4, 0, 0.1],
+                [3, 0.2, 0.1],
+                [-4, 4, 0.1]
             ]
         self.angle = 0
 
@@ -83,7 +83,7 @@ class TrajectoryPlanner:
         self.target_state = self.ref_traj[-1]
 
         # Berechne die interpolierte Trajektorie und passe T entsprechend an
-        self.prediction_distance = 2.0
+        self.prediction_distance = 3.0
         self.ref_traj, self.T = self.interpolate_trajectory(self.ref_traj, self.prediction_distance, self.controller.N, self.controller.v_max, 1.1)
 
 

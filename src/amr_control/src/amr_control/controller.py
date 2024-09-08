@@ -16,7 +16,7 @@ import math
 from amr_control.visualizer import Visualizer
 
 class nMPC:
-    def __init__(self, model, max_obstacles, N=20, Q=np.diag([1, 1, 0.001]), R=np.diag([0.5, 0.05]), T=0.3):
+    def __init__(self, model, max_obstacles, N=20, Q=np.diag([1, 1, 0.001]), R=np.diag([100, 0.05]), T=0.3):
         self.model = model
         self.n_obstacles = max_obstacles
         self.N = N
