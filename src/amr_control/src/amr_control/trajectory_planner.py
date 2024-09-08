@@ -42,14 +42,14 @@ class TrajectoryPlanner:
         self.loop_count = 0.0
                 
         self.model = RobotModel()
-        self.controller = nMPC(self.model, 1)
+        self.controller = nMPC(self.model, 2)
         self.T = 0.01
         self.current_state = np.array([0.0, 0.0, 0.0])  # Initialisiere mit einer Standardpose
         self.timer = rospy.Timer(rospy.Duration(self.T), self.controller_loop)
         
         self.obstacles = [
-                [1, 0.3, 0.3]
-                # [4, 0, 0.2],
+                [1, 0.3, 0.1],
+                [4, 0, 0.1]
                 # [3, 0.2, 0.3],
                 # [-4, 4, 0.7]
             ]
@@ -230,9 +230,9 @@ class TrajectoryPlanner:
             #     # [3, 0.2, 0.3]
             #     # [-4, 4, 0.7]
             # ]
-            self.angle += 0.001
-            self.obstacles[0][0] = cos(self.angle)*2
-            self.obstacles[0][1] = sin(self.angle)*2
+            # self.angle += 0.001
+            # self.obstacles[0][0] = cos(self.angle)*2
+            # self.obstacles[0][1] = sin(self.angle)*2
             self.u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, self.T, self.obstacles)
             self.publish_cmd_vel(self.u)
         else:
