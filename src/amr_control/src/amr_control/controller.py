@@ -16,7 +16,7 @@ import math
 from amr_control.visualizer import Visualizer
 
 class nMPC:
-    def __init__(self, model, max_obstacles, N=20, Q=np.diag([1, 1, 0.001]), R=np.diag([0.5, 0.05]), T=0.3):
+    def __init__(self, model, max_obstacles, N=20, Q=np.diag([1, 1, 0.001]), R=np.diag([0.5, 0.05]), T=0.3, penalty_weight=1):
         self.model = model
         self.n_obstacles = max_obstacles
         self.N = N
@@ -26,6 +26,9 @@ class nMPC:
         self.v_min, self.v_max = -0.2, 0.2
         self.omega_min, self.omega_max = -0.2, 0.2
         self.viz = Visualizer()
+        
+        # Add penalty weight
+        self.penalty_weight = penalty_weight
 
         self.u0 = np.zeros((N, 2))
         self.x0 = np.array([0, 0, 0])
@@ -79,19 +82,25 @@ class nMPC:
             st_next_euler = st + T * f_value  # Verwende T aus dem Parametervektor
             g = ca.vertcat(g, st_next - st_next_euler)
                             
-        # Hindernisvermeidungs-Constraints
+        # Obstacle avoidance constraints (hard and soft)
         for k in range(N + 1):
             for i in range(self.n_obstacles):
                 obs_x = P[-(3 * (i + 1) + 1)]
                 obs_y = P[-(3 * (i + 1))]
                 obs_diam = P[-(3 * (i + 1) - 1)]
-                obs_constraint = -ca.sqrt((X[0, k] - obs_x) ** 2 + (X[1, k] - obs_y) ** 2) + (rob_diam / 2 + obs_diam / 2)
-                g = ca.vertcat(g, obs_constraint)
+                
+                # Hard constraint: obstacle avoidance
+                hard_obs_constraint = -ca.sqrt((X[0, k] - obs_x) ** 2 + (X[1, k] - obs_y) ** 2) + (rob_diam / 2 + obs_diam / 2)
+                g = ca.vertcat(g, hard_obs_constraint)  # Ensure the robot does not collide with the obstacle
+
+                # Soft constraint: penalty for proximity to obstacles
+                soft_obs_cost = ca.fmax(0, (rob_diam / 2 + obs_diam / 2) - ca.sqrt((X[0, k] - obs_x) ** 2 + (X[1, k] - obs_y) ** 2))
+                obj += self.penalty_weight * soft_obs_cost  # Penalize proximity to obstacles
 
         # Entscheidungsvariable zu einem Spaltenvektor machen
-        self.OPT_variables = ca.vertcat(ca.reshape(X, n_states * (N + 1), 1), ca.reshape(U, n_controls * N, 1))
+        OPT_variables = ca.vertcat(ca.reshape(X, n_states * (N + 1), 1), ca.reshape(U, n_controls * N, 1))
         
-        nlp_prob = {'f': obj, 'x': self.OPT_variables, 'g': g, 'p': P}
+        nlp_prob = {'f': obj, 'x': OPT_variables, 'g': g, 'p': P}
         
         opts = {'ipopt.max_iter': 2000,
                 'ipopt.print_level': 0,
@@ -107,11 +116,12 @@ class nMPC:
         n_obstacles = self.n_obstacles
         N = self.N
 
+        # Arguments for solver
         args = {
-            'lbg': np.concatenate((np.zeros((3 * (self.N + 1), 1)), np.full((self.n_obstacles * (self.N + 1), 1), -np.inf))),
-            'ubg': np.concatenate((np.zeros((3 * (self.N + 1), 1)), np.full((self.n_obstacles * (self.N + 1), 1), 0))),
-            'lbx': np.full((3 * (self.N + 1) + 2 * self.N, 1), -ca.inf),
-            'ubx': np.full((3 * (self.N + 1) + 2 * self.N, 1), ca.inf),
+            'lbg': np.concatenate((np.zeros((3 * (self.N + 1), 1)), np.full((self.n_obstacles * (self.N + 1), 1), -np.inf))),  # Include obstacle constraints
+            'ubg': np.concatenate((np.zeros((3 * (self.N + 1), 1)), np.full((self.n_obstacles * (self.N + 1), 1), 0))),  # Upper bound for inequality (obstacle)
+            'lbx': np.full((3 * (self.N + 1) + 2 * self.N, 1), -ca.inf),  # Lower bounds for state and control variables
+            'ubx': np.full((3 * (self.N + 1) + 2 * self.N, 1), ca.inf),  # Upper bounds for state and control variables
             'p': np.zeros((self.model.n_states + self.N * (self.model.n_states + self.model.n_controls) + 3 * self.n_obstacles + 1,))
         }
         
