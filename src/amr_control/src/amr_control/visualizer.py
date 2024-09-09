@@ -5,15 +5,14 @@ from geometry_msgs.msg import PoseArray, Pose
 from tf.transformations import euler_from_quaternion
 import tf.transformations
 
-# from amr_control import Obstacle
-
 class Visualizer:
     def __init__(self):
-        rospy.init_node('nmpc_node', anonymous=True)
+        # Entferne den zweiten Aufruf von rospy.init_node
         self.predicted_pose_array_pub = rospy.Publisher('/predicted_trajectory', PoseArray, queue_size=10)
         self.refrence_pose_array_pub = rospy.Publisher('/refrence_trajectory', PoseArray, queue_size=10)
-        self.marker_publisher = rospy.Publisher('/obstacle_marker', Marker, queue_size=10)
-
+        self.marker_publisher = rospy.Publisher('/obstacle_marker_array', MarkerArray, queue_size=10)
+        
+        self.marker_id = 0
         
     def publish_predicted_trajectory(self, predicted_trajectory):
         pose_array = PoseArray()
@@ -33,36 +32,55 @@ class Visualizer:
 
         self.predicted_pose_array_pub.publish(pose_array)
         
-    def publish_obstacle_marker(self, obstacle):
-        # Obstacle parameters
-        self.obs_x = obstacle[0]
-        self.obs_y = obstacle[1]
-        self.obs_diam = obstacle[2]
-        self.obs_height = 1
+    def create_marker_array(self, obstacles):
+        self.delete_obstacle_markers()
         
+        """Erstellt einen MarkerArray für mehrere Hindernisse."""
+        marker_array = MarkerArray()
+
+        for obstacle in obstacles:
+            marker = Marker()
+            marker.header.frame_id = "base_link"
+            marker.header.stamp = rospy.Time.now()
+            marker.ns = "obstacle_detection"
+            marker.id = self.marker_id
+            marker.type = Marker.CYLINDER
+            marker.action = Marker.ADD
+
+            # Setze die Position des Markers
+            marker.pose.position.x = obstacle[0]
+            marker.pose.position.y = obstacle[1]
+            marker.pose.position.z = obstacle[2] / 2.0  # Hindernis-Höhe
+            marker.pose.orientation.w = 1.0
+
+            # Setze die Skalierung des Markers (Durchmesser und Höhe)
+            marker.scale.x = obstacle[2]
+            marker.scale.y = obstacle[2]
+            marker.scale.z = 1.0  # Setzt die Höhe
+
+            # Setze die Farbe des Markers
+            marker.color.r = 1.0
+            marker.color.g = 0.0
+            marker.color.b = 0.0
+            marker.color.a = 0.8
+
+            # Füge den Marker dem MarkerArray hinzu
+            marker_array.markers.append(marker)
+            self.marker_id += 1
+
+        # Veröffentliche den MarkerArray
+        self.marker_publisher.publish(marker_array)
+
+    def delete_obstacle_markers(self):
+        """Löscht alle bisher veröffentlichten Hindernis-Marker."""
+        marker_array = MarkerArray()
+
         marker = Marker()
-        marker.header.frame_id = "map"
-        marker.header.stamp = rospy.Time.now()
-        marker.ns = "obstacle"
-        marker.id = 0
-        marker.type = Marker.CYLINDER
-        marker.action = Marker.ADD
-        marker.pose.position.x = self.obs_x
-        marker.pose.position.y = self.obs_y
-        marker.pose.position.z = self.obs_height / 2.0
-        marker.pose.orientation.x = 0.0
-        marker.pose.orientation.y = 0.0
-        marker.pose.orientation.z = 0.0
-        marker.pose.orientation.w = 1.0
-        marker.scale.x = self.obs_diam
-        marker.scale.y = self.obs_diam
-        marker.scale.z = self.obs_height
-        marker.color.a = 0.8
-        marker.color.r = 1.0
-        marker.color.g = 0.0
-        marker.color.b = 0.0
-        self.marker_publisher.publish(marker)
+        marker.action = Marker.DELETEALL  # Lösche alle Marker
+        marker_array.markers.append(marker)
         
+        self.marker_publisher.publish(marker_array)
+
     def publish_refrence_trajectory(self, refrence_trajectory):
         pose_array = PoseArray()
         pose_array.header.stamp = rospy.Time.now()
@@ -75,7 +93,6 @@ class Visualizer:
                 # Wenn das Element bereits eine Pose ist, direkt übernehmen
                 new_pose.position.x = pose.position.x
                 new_pose.position.y = pose.position.y
-                new_pose.position.z = pose.position.z
 
                 new_pose.orientation.x = pose.orientation.x
                 new_pose.orientation.y = pose.orientation.y
@@ -86,7 +103,6 @@ class Visualizer:
                 # Wenn es sich um eine Liste [x, y, yaw] handelt, in Pose umwandeln
                 new_pose.position.x = pose[0]
                 new_pose.position.y = pose[1]
-                new_pose.position.z = 0.0  # Standard z-Wert
 
                 # Konvertiere den yaw-Wert in ein Quaternion
                 quaternion = tf.transformations.quaternion_from_euler(0, 0, pose[2])
@@ -98,3 +114,26 @@ class Visualizer:
             pose_array.poses.append(new_pose)
 
         self.refrence_pose_array_pub.publish(pose_array)
+
+    def publish_obstacle_marker(self, obstacle):
+        marker = Marker()
+        marker.header.frame_id = "map"
+        marker.header.stamp = rospy.Time.now()
+        marker.ns = "obstacle_detection"
+        marker.id = 0
+        marker.type = Marker.CYLINDER
+        marker.action = Marker.ADD
+        marker.pose.position.x = obstacle[0]
+        marker.pose.position.y = obstacle[1]
+        marker.pose.position.z = obstacle[2] / 2.0  # Hindernis-Höhe
+        marker.pose.orientation.w = 1.0
+        marker.scale.x = obstacle[2]
+        marker.scale.y = obstacle[2]
+        marker.scale.z = 1.0  # Hindernis-Höhe
+
+        marker.color.r = 1.0
+        marker.color.g = 0.0
+        marker.color.b = 0.0
+        marker.color.a = 0.8
+
+        self.marker_publisher.publish(marker)

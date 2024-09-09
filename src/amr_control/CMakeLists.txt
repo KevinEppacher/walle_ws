@@ -1,37 +1,31 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 2.8.3)
 project(amr_control)
 
+## Füge Abhängigkeiten hinzu
 find_package(catkin REQUIRED COMPONENTS
-  dynamic_reconfigure
-  nav_msgs
-  roscpp
-  roslib
   rospy
-  sensor_msgs
   std_msgs
+  geometry_msgs
+  sensor_msgs
+  nav_msgs
   tf
-  tf2
+  dynamic_reconfigure
 )
 
+## Füge die generierten dynamischen Rekonfigurationsoptionen hinzu
+# ACHTUNG: Diese Zeile muss vor dem catkin_package-Aufruf kommen!
+generate_dynamic_reconfigure_options(
+  cfg/ObstacleDetectionConfig.cfg
+)
+
+## catkin spezifische Einstellungen
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES amr_control
-#  CATKIN_DEPENDS dynamic_reconfigure nav_msgs roscpp roslib rospy sensor_msgs std_msgs tf tf2
-#  DEPENDS system_lib
+  CATKIN_DEPENDS dynamic_reconfigure
 )
 
-###########
-## Build ##
-###########
-
-## Specify additional locations of header files
-## Your package locations should be listed before other locations
 include_directories(
-  # include
   ${catkin_INCLUDE_DIRS}
 )
-  
-catkin_python_setup()
 
 
 ############################################################
@@ -103,3 +97,4 @@ catkin_install_python(PROGRAMS
   src/amr_control/trajectory_interpolation_test.py 
 DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+

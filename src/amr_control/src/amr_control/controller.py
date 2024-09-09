@@ -16,15 +16,15 @@ import math
 from amr_control.visualizer import Visualizer
 
 class nMPC:
-    def __init__(self, model, max_obstacles, N=20, Q=np.diag([1, 1, 0.001]), R=np.diag([100, 0.05]), T=0.3):
+    def __init__(self, model, max_obstacles, N=20, Q=np.diag([100, 100, 0.001]), R=np.diag([0.05, 0.05]), T=0.3):
         self.model = model
         self.n_obstacles = max_obstacles
         self.N = N
         self.Q = Q
         self.R = R
         self.T = T
-        self.v_min, self.v_max = -0.2, 0.2
-        self.omega_min, self.omega_max = -0.2, 0.2
+        self.v_min, self.v_max = -0.01, 0.2
+        self.omega_min, self.omega_max = -0.3, 0.3
         self.viz = Visualizer()
 
         self.u0 = np.zeros((N, 2))
@@ -168,7 +168,7 @@ class nMPC:
         
         for i, obs in enumerate(self.obstacles):
             args['p'][offset + 3 * i: offset + 3 * (i + 1)] = obs
-            self.viz.publish_obstacle_marker(obs)
+            # self.viz.publish_obstacle_marker(obs)
 
         for i in range(reserved_obstacles):
             args['p'][offset_reserved_obstacles + 3 * i: offset_reserved_obstacles + 3 * (i + 1)] = [10000, 10000, -1000]

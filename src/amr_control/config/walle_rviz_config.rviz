@@ -226,7 +226,7 @@ Visualization Manager:
       Marker Topic: /obstacle_marker
       Name: Marker
       Namespaces:
-        obstacle: true
+        obstacle_detection: true
       Queue Size: 100
       Value: true
     - Alpha: 0.699999988079071
@@ -328,7 +328,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 5.075284004211426
+      Distance: 8.74020767211914
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -336,8 +336,8 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 2.0097146034240723
-        Y: -0.7079622149467468
+        X: 3.0267128944396973
+        Y: -1.0965827703475952
         Z: 2.1457672119140625e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
