@@ -1,0 +1,27 @@
+<!-- cube.urdf -->
+<robot name="cube_robot">
+  <link name="cube_link">
+    <visual>
+      <geometry>
+        <box size="0.3 0.3 0.3"/> <!-- Visuelle Größe des Würfels: 0.3x0.3x0.3 Meter -->
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/> <!-- Farbe des Würfels: Blau -->
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.3 0.3 0.3"/> <!-- Kollisionseigenschaften: 0.3x0.3x0.3 Meter -->
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1.0"/> <!-- Masse des Würfels -->
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.1" ixy="0.0" ixz="0.0" iyy="0.1" iyz="0.0" izz="0.1"/>
+    </inertial>
+  </link>
+
+  <gazebo>
+    <static>false</static> <!-- Würfel soll physikalisch sein und sich bewegen -->
+  </gazebo>
+</robot>

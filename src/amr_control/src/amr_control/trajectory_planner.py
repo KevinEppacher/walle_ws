@@ -34,6 +34,7 @@ class TrajectoryPlanner:
         self.tf_listener = tf.TransformListener()
         self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.global_plan_sub = rospy.Subscriber('/move_base/NavfnROS/plan', Path, self.global_plan_callback)
+        self.obstacle_sub = rospy.Subscriber('/detected_obstacles', Float32MultiArray, self.obstacle_callback)
         self.ref_traj = []
 
         # Zusätzliche Variablen für die Zeitmessung
@@ -46,12 +47,7 @@ class TrajectoryPlanner:
         self.current_state = np.array([0.0, 0.0, 0.0])  # Initialisiere mit einer Standardpose
         self.timer = rospy.Timer(rospy.Duration(self.T), self.controller_loop)
         
-        # self.obstacles = [
-        #         [1, 0.3, 0.3],
-        #         [4, 0, 0.3],
-        #         [3, 0.2, 0.3],
-        #         [-4, 4, 0.3]
-        #     ]
+        self.obstacles = []
         self.angle = 0
 
     def get_robot_pose(self):
@@ -62,6 +58,11 @@ class TrajectoryPlanner:
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             rospy.logwarn("Unable to get robot pose from TF")
             return None
+        
+    def obstacle_callback(self, msg):
+        # Extrahiere die Hindernisse aus der empfangenen Nachricht
+        obstacles = np.array(msg.data).reshape(-1, 3)
+        self.obstacles = obstacles
     
     
     def global_plan_callback(self, msg):
@@ -212,26 +213,19 @@ class TrajectoryPlanner:
         else:
             rospy.loginfo("No global plan available")
 
-        end_time = rospy.Time.now()  # Endzeit mit ROS-Zeitstempel
-        loop_time = (end_time - start_time).to_sec()  # Taktzeit berechnen in Sekunden
+        # end_time = rospy.Time.now()  # Endzeit mit ROS-Zeitstempel
+        # loop_time = (end_time - start_time).to_sec()  # Taktzeit berechnen in Sekunden
 
-        if loop_time > 0.1:
-            rospy.logwarn(f"Taktzeit: {loop_time:.4f} Sekunden")
-        else:
-            # Ausgabe der Taktzeit und der durchschnittlichen Taktzeit
-            rospy.loginfo(f"Taktzeit: {loop_time:.4f} Sekunden")
+        # if loop_time > 0.1:
+        #     rospy.logwarn(f"Taktzeit: {loop_time:.4f} Sekunden")
+        # else:
+        #     # Ausgabe der Taktzeit und der durchschnittlichen Taktzeit
+        #     rospy.loginfo(f"Taktzeit: {loop_time:.4f} Sekunden")
             
     def compute_control_input(self):
         if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-2:
-            # obstacles = [
-            #     [1, 0.3, 0.3]
-            #     # [4, 0, 0.2],
-            #     # [3, 0.2, 0.3]
-            #     # [-4, 4, 0.7]
-            # ]
-            self.angle += 0.001
-            self.obstacles[0][0] = cos(self.angle)*2
-            self.obstacles[0][1] = sin(self.angle)*2
+
+
             self.u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, self.T, self.obstacles)
             self.publish_cmd_vel(self.u)
         else:

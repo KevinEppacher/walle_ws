@@ -14,7 +14,7 @@ class ObstacleDetection:
         rospy.init_node('obstacle_detection', anonymous=True)
 
         self.search_radius = search_radius
-        self.robot_radius = 0.15  # Roboter-Durchmesser wird als Kreis-Durchmesser verwendet
+        self.robot_radius = 0.1  # Roboter-Durchmesser wird als Kreis-Durchmesser verwendet
         self.max_objects = 10  # Maximale Anzahl von Kreisen (Ecken), die veröffentlicht werden
         self.lidar_sub = rospy.Subscriber('/scan', LaserScan, self.lidar_callback)
         self.obstacle_pub = rospy.Publisher('/detected_obstacles', Float32MultiArray, queue_size=10)
@@ -26,7 +26,7 @@ class ObstacleDetection:
         self.server = Server(ObstacleDetectionConfig, self.dynamic_reconfigure_callback)
 
         # Initiale Parameter
-        self.quality_level = 0.9  # Standardwert für Quality Level
+        self.quality_level = 0.95  # Standardwert für Quality Level
 
     def dynamic_reconfigure_callback(self, config, level):
         """Callback, der aufgerufen wird, wenn der Dynamic Reconfigure Parameter geändert wird."""
@@ -35,8 +35,7 @@ class ObstacleDetection:
         return config
 
     def lidar_callback(self, data):
-        rate = rospy.Rate(0.5)
-        
+        # Die Callback-Funktion verarbeitet die neuesten Nachrichten direkt
         lidar_ranges = np.array(data.ranges)
         lidar_angles = np.linspace(data.angle_min, data.angle_max, len(lidar_ranges))
         
@@ -53,13 +52,11 @@ class ObstacleDetection:
 
         if corners is not None:
             self.display_corners_on_image(lidar_image, corners)
-            cv2.imshow("Lidar Image with Corners", lidar_image)
-            cv2.waitKey(1)
-
-            # Publiziere die erkannten Ecken als Kreise
             self.publish_corners_as_circles(corners)
-        
-        rate.sleep()
+
+        cv2.imshow("Lidar Image with Corners", lidar_image)
+        cv2.waitKey(1)
+
 
     def create_lidar_image(self, x_points, y_points):
         max_range = int(self.search_radius * 100)
@@ -126,7 +123,8 @@ class ObstacleDetection:
         cv2.imshow("Detected Corners", image_with_corners)
 
     def run(self):
-        rospy.spin()
+        rospy.spin()  # spin_once existiert nicht in ROS, nutze spin
+
 
 
 if __name__ == '__main__':

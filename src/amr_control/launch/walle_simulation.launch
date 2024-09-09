@@ -4,7 +4,7 @@
     <arg name="model" default="burger" />
 
     <!-- Create gazebo world -->
-    <include file="$(find gazebo_ros)launch/empty_world.launch" >
+    <include file="$(find gazebo_ros)/launch/empty_world.launch" >
         <arg name="world_name" value="$(arg world_name)"/>  
         <arg name="headless" value="false" />
         <arg name="gui" value="false" />
@@ -16,8 +16,8 @@
     <!-- Define robot description parameter using xacro to process the URDF file -->
     <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_burger.urdf.xacro"/>
 
-    <!-- Spawn URDF model in Gazebo -->
-    <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model turtlebot3_burger -x 0.0 -y 0.0 -z 0.1 -Y 0 -param robot_description" />
+    <!-- Spawn TurtleBot3 URDF model in Gazebo -->
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_turtlebot" args="-urdf -model turtlebot3_burger -x 0.0 -y 0.0 -z 0.1 -Y 0 -param robot_description" />
 
     <!-- Include the turtlebot3_remote.launch file -->
     <include file="$(find turtlebot3_bringup)/launch/turtlebot3_remote.launch"/>
@@ -74,11 +74,13 @@
     <!-- <node name="main" pkg="amr_control" type="main" output="screen" /> -->
     <rosparam file="$(find amr_control)/param/costmap_common_params_$(arg model).yaml" command="load" ns="global_costmap"/>
     
-    <!-- Das <include>-Element ist eine Möglichkeit, um Code aus einer anderen Datei wiederzuverwenden. Es ermöglicht es,
-     den Code in separate Dateien aufzuteilen und ihn dann in anderen Dateien einzufügen, um die Wiederverwendbarkeit und
-      Lesbarkeit des Codes zu verbessern. -->
+    <!-- Include move_base -->
     <include file="$(find amr_control)/launch/move_base.launch" />
 
-    <!-- <include file="$(find amr_control)/launch/start_optimal_control.launch" /> -->
+    <!-- Cube in Gazebo laden -->
+    <param name="cube_description" command="cat $(find amr_control)/urdf/cube.urdf"/>
 
+    <node name="spawn_cube" pkg="gazebo_ros" type="spawn_model" output="screen"
+          args="-param cube_description -urdf -model cube -x 1.0 -y 0.3 -z 0.15"/>
+    
 </launch>
