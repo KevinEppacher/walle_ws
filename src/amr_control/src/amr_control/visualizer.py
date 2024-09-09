@@ -11,6 +11,7 @@ class Visualizer:
         self.predicted_pose_array_pub = rospy.Publisher('/predicted_trajectory', PoseArray, queue_size=10)
         self.refrence_pose_array_pub = rospy.Publisher('/refrence_trajectory', PoseArray, queue_size=10)
         self.marker_publisher = rospy.Publisher('/obstacle_marker_array', MarkerArray, queue_size=10)
+        self.search_radius_pub = rospy.Publisher('/search_radius', Marker, queue_size=10)
         
         self.marker_id = 0
         
@@ -114,6 +115,36 @@ class Visualizer:
             pose_array.poses.append(new_pose)
 
         self.refrence_pose_array_pub.publish(pose_array)
+        
+    def create_search_radius_marker(self, search_radius):
+        """Erstellt und veröffentlicht einen Marker für den Suchradius."""
+        marker = Marker()
+        marker.header.frame_id = "base_link"  # Verankere den Suchradius an der Mitte des Roboters
+        marker.header.stamp = rospy.Time.now()
+        marker.ns = "search_radius"
+        marker.id = 0
+        marker.type = Marker.CYLINDER
+        marker.action = Marker.ADD
+
+        # Positioniere den Marker in der Mitte des Roboters (base_link)
+        marker.pose.position.x = 0.0
+        marker.pose.position.y = 0.0
+        marker.pose.position.z = 0.0
+        marker.pose.orientation.w = 1.0
+
+        # Setze die Skalierung des Markers (Durchmesser und Höhe)
+        marker.scale.x = search_radius * 2  # Der Durchmesser ist doppelt so groß wie der Radius
+        marker.scale.y = search_radius * 2
+        marker.scale.z = 0.1  # Höhe des Zylinders (flach)
+
+        # Setze die Farbe des Markers
+        marker.color.r = 0.0
+        marker.color.g = 0.0
+        marker.color.b = 1.0  # Blau
+        marker.color.a = 0.5  # Transparenz
+
+        # Veröffentliche den Marker
+        self.search_radius_pub.publish(marker)
 
     def publish_obstacle_marker(self, obstacle):
         marker = Marker()

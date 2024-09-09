@@ -300,6 +300,14 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /search_radius
+      Name: Marker
+      Namespaces:
+        search_radius: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -336,8 +344,8 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 3.0267128944396973
-        Y: -1.0965827703475952
+        X: 2.1512579917907715
+        Y: -1.4658429622650146
         Z: 2.1457672119140625e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806

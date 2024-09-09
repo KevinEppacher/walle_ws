@@ -10,7 +10,7 @@ class RobotModel:
         x = ca.SX.sym('x')
         y = ca.SX.sym('y')
         theta = ca.SX.sym('theta')
-        self.diam = 0.4
+        self.diam = 0.6
         self.states = ca.vertcat(x, y, theta)
         self.n_states = self.states.size1()
 

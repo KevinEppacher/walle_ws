@@ -213,19 +213,17 @@ class TrajectoryPlanner:
         else:
             rospy.loginfo("No global plan available")
 
-        # end_time = rospy.Time.now()  # Endzeit mit ROS-Zeitstempel
-        # loop_time = (end_time - start_time).to_sec()  # Taktzeit berechnen in Sekunden
+        end_time = rospy.Time.now()  # Endzeit mit ROS-Zeitstempel
+        loop_time = (end_time - start_time).to_sec()  # Taktzeit berechnen in Sekunden
 
-        # if loop_time > 0.1:
-        #     rospy.logwarn(f"Taktzeit: {loop_time:.4f} Sekunden")
-        # else:
-        #     # Ausgabe der Taktzeit und der durchschnittlichen Taktzeit
-        #     rospy.loginfo(f"Taktzeit: {loop_time:.4f} Sekunden")
+        if loop_time > 0.1:
+            rospy.logwarn(f"Taktzeit: {loop_time:.4f} Sekunden")
+        else:
+            # Ausgabe der Taktzeit und der durchschnittlichen Taktzeit
+            rospy.loginfo(f"Taktzeit: {loop_time:.4f} Sekunden")
             
     def compute_control_input(self):
         if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-2:
-
-
             self.u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, self.T, self.obstacles)
             self.publish_cmd_vel(self.u)
         else:
