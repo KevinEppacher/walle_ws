@@ -2,17 +2,17 @@ nmpc_controller:
   N: 20  # Horizont für MPC
   Q: [1.0, 1.0, 0.0]  # Gewichtungsmatrix Q
   R: [0.1, 0.1]  # Gewichtungsmatrix R
-  init_position: [0.0, 0.0, 0.0]  # Initiale Position
   v_min: 0.0  # Minimale Geschwindigkeit
   v_max: 0.2  # Maximale Geschwindigkeit
   omega_min: -0.5  # Minimale Winkelgeschwindigkeit
   omega_max: 0.5  # Maximale Winkelgeschwindigkeit
-  max_obstacles: 5  # Maximale Anzahl an Hindernissen
+  max_obstacles: 10  # Maximale Anzahl an Hindernissen
 
 trajectory_planner:
-  controller_loop_rate: 10  # Loop Rate in Hz
-  feed_forward_scaling: 1.0  # Feed-Forward-Skalierung
-  prediction_distance: 5.0  # Vorhersagedistanz in Metern
+  init_position: [0.0, 0.0, 0.0]  # Initiale Position
+  controller_loop_rate: 100  # Loop Rate in Hz
+  feed_forward_scaling: 0.7  # Feed-Forward-Skalierung
+  prediction_distance: 2.0  # Vorhersagedistanz in Metern
   goal_tolerance: 0.1  # Toleranz für das Erreichen des Ziels
 
 obstacle_detection:
@@ -20,4 +20,4 @@ obstacle_detection:
   quality_level: 0.95  # Shi-Tomasi Quality Level
   max_corners: 20  # Maximal erkennbare Ecken
   min_distance: 20  # Mindestabstand zwischen den erkannten Ecken
-  detection_rate: 5  # Erkennungsrate in Hz
+  loop_rate: 1  # Erkennungsrate in Hz

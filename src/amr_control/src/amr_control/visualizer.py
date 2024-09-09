@@ -53,13 +53,13 @@ class Visualizer:
             # Setze die Position des Markers
             marker.pose.position.x = obstacle[0]
             marker.pose.position.y = obstacle[1]
-            marker.pose.position.z = obstacle[2] / 2.0  # Hindernis-Höhe
+            marker.pose.position.z = 0.1  # Hindernis-Höhe
             marker.pose.orientation.w = 1.0
 
             # Setze die Skalierung des Markers (Durchmesser und Höhe)
             marker.scale.x = obstacle[2]
             marker.scale.y = obstacle[2]
-            marker.scale.z = 1.0  # Setzt die Höhe
+            marker.scale.z = 0.2  # Setzt die Höhe
 
             # Setze die Farbe des Markers
             marker.color.r = 1.0
@@ -161,17 +161,17 @@ class Visualizer:
         # Positioniere den Marker in der Mitte des Roboters (base_link)
         marker.pose.position.x = 0.0
         marker.pose.position.y = 0.0
-        marker.pose.position.z = 0.0
+        marker.pose.position.z = 0.1
         marker.pose.orientation.w = 1.0
 
         # Setze die Skalierung des Markers (Durchmesser und Höhe)
         marker.scale.x = robot_radius
         marker.scale.y = robot_radius
-        marker.scale.z = 0.1  # Höhe des Zylinders (flach)
+        marker.scale.z = 0.2  # Höhe des Zylinders (flach)
 
         # Setze die Farbe des Markers
         marker.color.r = 1.0
-        marker.color.g = 1.0
+        marker.color.g = 0.5
         marker.color.b = 0.5  # Blau
         marker.color.a = 0.25  # Transparenz
 

@@ -10,24 +10,28 @@ from amr_control.cfg import ObstacleDetectionConfig  # Importiere die .cfg-Datei
 from amr_control.visualizer import Visualizer
 
 class ObstacleDetection:
-    def __init__(self, search_radius=1.5):
+    def __init__(self):
         rospy.init_node('obstacle_detection', anonymous=True)
 
-        self.search_radius = search_radius
-        self.safety_corner_radius = 0.1  # Roboter-Durchmesser wird als Kreis-Durchmesser verwendet
-        self.max_objects = 10  # Maximale Anzahl von Kreisen (Ecken), die veröffentlicht werden
+        # Load parameters from YAML configuration
+        self.search_radius = rospy.get_param('trajectory_planner/prediction_distance', 2.0)  # Prediction distance
+        self.safety_corner_radius = rospy.get_param('obstacle_detection/safety_corner_radius', 0.1)  # Prediction distance
+        self.quality_level = rospy.get_param('obstacle_detection/quality_level', 0.01)  # Prediction distance
+        self.max_corners = rospy.get_param('obstacle_detection/max_corners', 20)  # Prediction distance
+        self.min_distance = rospy.get_param('obstacle_detection/min_distance', 20)  # Prediction distance
+        self.loop_rate = rospy.get_param('obstacle_detection/loop_rate', 1)  # Prediction distance
+        self.max_objects = rospy.get_param('nmpc_controller/max_obstacles', 10)  # Maximum number of obstacles
+        
+        # Initialize ROS publishers and subscribers
         self.lidar_sub = rospy.Subscriber('/scan', LaserScan, self.lidar_callback)
         self.obstacle_pub = rospy.Publisher('/detected_obstacles', Float32MultiArray, queue_size=10)
         self.detected_obstacles = Float32MultiArray()
-        self.latest_scan_data = None  # Speichert die neuesten Daten
+        self.latest_scan_data = None
         
         self.visualizer = Visualizer()
 
         # Initialisiere den Dynamic Reconfigure Server
         self.server = Server(ObstacleDetectionConfig, self.dynamic_reconfigure_callback)
-
-        # Initiale Parameter
-        self.quality_level = 0.01  # Standardwert für Quality Level
 
     def dynamic_reconfigure_callback(self, config, level):
         """Callback, der aufgerufen wird, wenn der Dynamic Reconfigure Parameter geändert wird."""
@@ -73,14 +77,11 @@ class ObstacleDetection:
 
     def detect_corners(self, image):
         """Erkennt die markantesten Ecken im Bild mit Shi-Tomasi Corner Detection."""
-        max_corners = 20  # Maximal erkennbare Ecken
-        min_distance = 20  # Mindestabstand zwischen den erkannten Ecken
-
         # Shi-Tomasi Corner Detection anwenden
-        corners = cv2.goodFeaturesToTrack(image, maxCorners=max_corners, qualityLevel=self.quality_level, minDistance=min_distance)
+        corners = cv2.goodFeaturesToTrack(image, maxCorners=self.max_corners, qualityLevel=self.quality_level, minDistance=self.min_distance)
         
         if corners is not None:
-            corners = np.int0(corners)
+            corners = np.intp(corners)
         return corners
 
     def publish_corners_as_circles(self, corners):
@@ -112,7 +113,7 @@ class ObstacleDetection:
         rospy.loginfo(f"Published {len(corners_to_publish)} corners as circles.")
 
     def run(self):
-        rate = rospy.Rate(1)  # Setze die Veröffentlichungsrate auf 2 Hz
+        rate = rospy.Rate(self.loop_rate)  # Setze die Veröffentlichungsrate auf 2 Hz
         while not rospy.is_shutdown():
             if self.latest_scan_data:
                 # Verarbeite die neuesten Daten

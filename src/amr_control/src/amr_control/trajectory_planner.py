@@ -29,6 +29,13 @@ class TrajectoryPlanner:
     def __init__(self):
         rospy.init_node('nmpc_node', anonymous=True)
         
+        # Load parameters from the YAML configuration
+        self.loop_rate = rospy.get_param('trajectory_planner/controller_loop_rate', 100)  # Loop rate in Hz
+        self.feed_forward_scaling = rospy.get_param('trajectory_planner/feed_forward_scaling', 0.8)  # Feed-forward scaling
+        self.prediction_distance = rospy.get_param('trajectory_planner/prediction_distance', 2.0)  # Prediction distance
+        self.goal_tolerance = rospy.get_param('trajectory_planner/goal_tolerance', 0.1)  # Goal tolerance
+        self.current_state = np.array(rospy.get_param('nmpc_controller/init_position', [0.0, 0.0, 0.0]))
+        
         self.u = [0, 0]
         
         self.tf_listener = tf.TransformListener()
@@ -42,9 +49,8 @@ class TrajectoryPlanner:
         self.loop_count = 0.0
                 
         self.model = RobotModel()
-        self.controller = nMPC(self.model, 10)
-        self.T = 0.01
-        self.current_state = np.array([0.0, 0.0, 0.0])  # Initialisiere mit einer Standardpose
+        self.controller = nMPC(self.model)
+        self.T = 1 / self.loop_rate
         self.timer = rospy.Timer(rospy.Duration(self.T), self.controller_loop)
         
         self.obstacles = []
@@ -83,9 +89,7 @@ class TrajectoryPlanner:
 
         # Setze das Ziel auf den letzten Punkt in der Trajektorie
         self.target_state = self.ref_traj[-1]
-
-        # Berechne die interpolierte Trajektorie und passe T entsprechend an
-        self.prediction_distance = 2.0
+        
         self.ref_traj, self.T = self.interpolate_trajectory(self.ref_traj, self.prediction_distance, self.controller.N, self.controller.v_max, 1.1)
 
 
@@ -170,7 +174,7 @@ class TrajectoryPlanner:
         prediction_distance = total_prediction_distance / N
         T = prediction_distance / robot_maximum_speed
 
-        T = T * 0.8
+        T = T * self.feed_forward_scaling
 
         # Interpolierte Positionen basierend auf der Gesamtzahl der gewünschten Punkte N
         new_distances = np.linspace(0, total_ref_distance, N)
@@ -225,7 +229,7 @@ class TrajectoryPlanner:
         #     rospy.loginfo(f"Taktzeit: {loop_time:.4f} Sekunden")
             
     def compute_control_input(self):
-        if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-2:
+        if np.linalg.norm(self.current_state - self.target_state, 2) > self.goal_tolerance:
             # obs = [
             #     [0.7, 0.5, 0.5]
             # ]

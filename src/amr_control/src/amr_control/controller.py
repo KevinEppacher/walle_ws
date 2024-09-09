@@ -16,18 +16,28 @@ import math
 from amr_control.visualizer import Visualizer
 
 class nMPC:
-    def __init__(self, model, max_obstacles, N=15, Q=np.diag([100, 100, 0.001]), R=np.diag([0.05, 0.05]), T=0.3):
+    def __init__(self, model):
         self.model = model
-        self.n_obstacles = max_obstacles
-        self.N = N
-        self.Q = Q
-        self.R = R
-        self.T = T
-        self.v_min, self.v_max = 0.0, 0.2
-        self.omega_min, self.omega_max = -0.5, 0.5
+        # Prediction horizon
+        self.N = rospy.get_param('nmpc_controller/N', 15)  # Prediction horizon
+        # Weighting matrices
+        Q_param = rospy.get_param('nmpc_controller/Q', [100, 100, 0.001])  # Diagonal values for Q
+        R_param = rospy.get_param('nmpc_controller/R', [0.05, 0.05])  # Diagonal values for R
+        self.Q = np.diag(Q_param)  # Convert list to diagonal matrix
+        self.R = np.diag(R_param)  # Convert list to diagonal matrix
+        # Maximum number of obstacles
+        self.n_obstacles = rospy.get_param('nmpc_controller/max_obstacles', 10)  # Maximum number of obstacles
+        # Control bounds
+        self.v_min = rospy.get_param('nmpc_controller/v_min', 0.0)  # Minimum linear velocity
+        self.v_max = rospy.get_param('nmpc_controller/v_max', 0.2)  # Maximum linear velocity
+        self.omega_min = rospy.get_param('nmpc_controller/omega_min', -0.5)  # Minimum angular velocity
+        self.omega_max = rospy.get_param('nmpc_controller/omega_max', 0.5)  # Maximum angular velocity
+        # Prediction distance
+        self.prediction_distance = rospy.get_param('nmpc_controller/prediction_distance', 2.0)  # Prediction distance
+        
         self.viz = Visualizer()
 
-        self.u0 = np.zeros((N, 2))
+        self.u0 = np.zeros((self.N, 2))
         self.x0 = np.array([0, 0, 0])
         self.xx = np.zeros((3, 1))
         self.xx[:, 0] = self.x0
@@ -134,7 +144,6 @@ class nMPC:
         size_ref_traj = len(ref_traj)
         ref_traj_array = []
         
-        prediction_distance = 2
         euklidean_distance = np.linalg.norm(current_state[:2] - target_state[:2], 2)
         # print("Target State: ", target_state)
         # print("Current State: ", current_state)
@@ -149,10 +158,10 @@ class nMPC:
                 
                 ref_traj_array.append([x_ref, y_ref, theta_ref])
 
-                u_ref = 0.5
-                omega_ref = 0
+                u_ref = 0.5  # Beispielwert für die lineare Geschwindigkeit
+                omega_ref = 0  # Beispielwert für die Winkelgeschwindigkeit
                 
-            if euklidean_distance < prediction_distance:
+            if euklidean_distance < self.prediction_distance:
                 x_ref = ref_traj[-1][0]
                 y_ref = ref_traj[-1][1]
                 theta_ref = self.normalize_angle(ref_traj[-1][2])
