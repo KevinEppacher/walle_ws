@@ -29,7 +29,7 @@ class TrajectoryPlanner:
     def __init__(self):
         rospy.init_node('nmpc_node', anonymous=True)
         
-        self.u = [0, 0]  # Hier wird die Steuergröße initialisiert
+        self.u = [0, 0]
         
         self.tf_listener = tf.TransformListener()
         self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
@@ -48,7 +48,7 @@ class TrajectoryPlanner:
         self.timer = rospy.Timer(rospy.Duration(self.T), self.controller_loop)
         
         self.obstacles = []
-        self.angle = 0
+        self.search_radius_marker = 0
 
     def get_robot_pose(self):
         try:
@@ -60,9 +60,11 @@ class TrajectoryPlanner:
             return None
         
     def obstacle_callback(self, msg):
-        # Extrahiere die Hindernisse aus der empfangenen Nachricht
-        obstacles = np.array(msg.data).reshape(-1, 3)
-        self.obstacles = obstacles
+        # Extrahiere die Hindernisse aus der empfangenen Nachricht (msg.data ist eine flache Liste)
+        obstacles = np.array(msg.data).reshape(-1, 3)  # Formatiere die Daten in eine Liste von Dreiergruppen (x, y, diameter)
+        
+        # Konvertiere die NumPy-Array in eine reguläre Liste
+        self.obstacles = obstacles.tolist()
     
     
     def global_plan_callback(self, msg):
@@ -109,7 +111,7 @@ class TrajectoryPlanner:
             dx = next_pose.position.x - current_pose.position.x
             dy = next_pose.position.y - current_pose.position.y
             yaw = math.atan2(dy, dx)
-            yaw = self.normalize_angle(yaw)
+            yaw = self.normalize_search_radius_marker(yaw)
 
             # Füge den aktuellen Punkt mit (x, y, yaw) zur Liste hinzu
             waypoints_with_yaw.append([current_pose.position.x, current_pose.position.y, yaw])
@@ -142,20 +144,20 @@ class TrajectoryPlanner:
 
         # Berechne die Distanzen zwischen den Punkten der aktuellen Referenz-Trajektorie
         ref_points = ref_traj_array[:, :2]  # Nur x, y für Distanzen berechnen
-        yaw_angles = ref_traj_array[:, 2]  # Yaw-Winkel (Orientierung) separat speichern
+        yaw_search_radius_markers = ref_traj_array[:, 2]  # Yaw-Winkel (Orientierung) separat speichern
         distances = np.sqrt(np.sum(np.diff(ref_points, axis=0) ** 2, axis=1))
         cumulative_distances = np.insert(np.cumsum(distances), 0, 0)
 
         # Nur die Waypoints behalten, die innerhalb der totalen Prediction-Distanz liegen
         within_distance_mask = cumulative_distances <= total_prediction_distance
         ref_points_within_distance = ref_points[within_distance_mask]
-        yaw_within_distance = yaw_angles[within_distance_mask]
+        yaw_within_distance = yaw_search_radius_markers[within_distance_mask]
         cumulative_distances_within = cumulative_distances[within_distance_mask]
 
         # Falls die Anzahl der Punkte nicht ausreicht, füge den letzten Punkt hinzu
         if len(ref_points_within_distance) < 2:
             ref_points_within_distance = np.vstack([ref_points_within_distance, ref_points[-1]])
-            yaw_within_distance = np.append(yaw_within_distance, yaw_angles[-1])
+            yaw_within_distance = np.append(yaw_within_distance, yaw_search_radius_markers[-1])
             cumulative_distances_within = np.append(cumulative_distances_within, total_prediction_distance)
 
         # Gesamtdistanz der Referenz-Trajektorie
@@ -182,16 +184,16 @@ class TrajectoryPlanner:
 
         # Interpolation der Yaw-Winkel
         interp_yaw = interp1d(cumulative_distances_within, yaw_within_distance, kind='linear', fill_value="extrapolate")
-        new_yaw_angles = interp_yaw(new_distances)
+        new_yaw_search_radius_markers = interp_yaw(new_distances)
 
         # Erstelle eine neue Trajektorie mit x, y und yaw
-        new_trajectory = np.column_stack((new_points_x, new_points_y, new_yaw_angles))
+        new_trajectory = np.column_stack((new_points_x, new_points_y, new_yaw_search_radius_markers))
         
         return new_trajectory, T
 
     
-    def normalize_angle(self, angle):
-        return (angle + math.pi) % (2 * math.pi) - math.pi
+    def normalize_search_radius_marker(self, search_radius_marker):
+        return (search_radius_marker + math.pi) % (2 * math.pi) - math.pi
 
     def get_yaw_from_quaternion(self, quaternion):
         norm = math.sqrt(sum([x * x for x in quaternion]))
@@ -213,18 +215,22 @@ class TrajectoryPlanner:
         else:
             rospy.loginfo("No global plan available")
 
-        end_time = rospy.Time.now()  # Endzeit mit ROS-Zeitstempel
-        loop_time = (end_time - start_time).to_sec()  # Taktzeit berechnen in Sekunden
+        # end_time = rospy.Time.now()  # Endzeit mit ROS-Zeitstempel
+        # loop_time = (end_time - start_time).to_sec()  # Taktzeit berechnen in Sekunden
 
-        if loop_time > 0.1:
-            rospy.logwarn(f"Taktzeit: {loop_time:.4f} Sekunden")
-        else:
-            # Ausgabe der Taktzeit und der durchschnittlichen Taktzeit
-            rospy.loginfo(f"Taktzeit: {loop_time:.4f} Sekunden")
+        # if loop_time > 0.1:
+        #     rospy.logwarn(f"Taktzeit: {loop_time:.4f} Sekunden")
+        # else:
+        #     # Ausgabe der Taktzeit und der durchschnittlichen Taktzeit
+        #     rospy.loginfo(f"Taktzeit: {loop_time:.4f} Sekunden")
             
     def compute_control_input(self):
         if np.linalg.norm(self.current_state - self.target_state, 2) > 1e-2:
+            # obs = [
+            #     [0.7, 0.5, 0.5]
+            # ]
             self.u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, self.T, self.obstacles)
+            # self.u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, self.T, obs)
             self.publish_cmd_vel(self.u)
         else:
             self.u = [0, 0]

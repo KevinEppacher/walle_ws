@@ -16,15 +16,15 @@ import math
 from amr_control.visualizer import Visualizer
 
 class nMPC:
-    def __init__(self, model, max_obstacles, N=20, Q=np.diag([100, 100, 0.001]), R=np.diag([0.05, 0.05]), T=0.3):
+    def __init__(self, model, max_obstacles, N=15, Q=np.diag([100, 100, 0.001]), R=np.diag([0.05, 0.05]), T=0.3):
         self.model = model
         self.n_obstacles = max_obstacles
         self.N = N
         self.Q = Q
         self.R = R
         self.T = T
-        self.v_min, self.v_max = -0.01, 0.2
-        self.omega_min, self.omega_max = -0.3, 0.3
+        self.v_min, self.v_max = 0.0, 0.2
+        self.omega_min, self.omega_max = -0.5, 0.5
         self.viz = Visualizer()
 
         self.u0 = np.zeros((N, 2))
@@ -106,6 +106,8 @@ class nMPC:
         self.obstacles = obstacles
         n_obstacles = self.n_obstacles
         N = self.N
+        
+        self.viz.robot_radius_marker(self.model.diam)
 
         args = {
             'lbg': np.concatenate((np.zeros((3 * (self.N + 1), 1)), np.full((self.n_obstacles * (self.N + 1), 1), -np.inf))),
@@ -147,8 +149,8 @@ class nMPC:
                 
                 ref_traj_array.append([x_ref, y_ref, theta_ref])
 
-                u_ref = 0.5  # Beispielwert für die lineare Geschwindigkeit
-                omega_ref = 0  # Beispielwert für die Winkelgeschwindigkeit
+                u_ref = 0.5
+                omega_ref = 0
                 
             if euklidean_distance < prediction_distance:
                 x_ref = ref_traj[-1][0]
@@ -168,7 +170,6 @@ class nMPC:
         
         for i, obs in enumerate(self.obstacles):
             args['p'][offset + 3 * i: offset + 3 * (i + 1)] = obs
-            # self.viz.publish_obstacle_marker(obs)
 
         for i in range(reserved_obstacles):
             args['p'][offset_reserved_obstacles + 3 * i: offset_reserved_obstacles + 3 * (i + 1)] = [10000, 10000, -1000]

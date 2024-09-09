@@ -117,7 +117,7 @@ class ObstacleDetection:
             if self.latest_scan_data:
                 # Verarbeite die neuesten Daten
                 self.process_lidar_data(self.latest_scan_data)
-            self.visualizer.create_search_radius_marker(self.search_radius)
+            self.visualizer.search_radius_marker(self.search_radius)
             rate.sleep()  # Kontrolliere die Publikationsfrequenz
 
 

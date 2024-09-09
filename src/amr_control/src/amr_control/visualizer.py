@@ -12,6 +12,8 @@ class Visualizer:
         self.refrence_pose_array_pub = rospy.Publisher('/refrence_trajectory', PoseArray, queue_size=10)
         self.marker_publisher = rospy.Publisher('/obstacle_marker_array', MarkerArray, queue_size=10)
         self.search_radius_pub = rospy.Publisher('/search_radius', Marker, queue_size=10)
+        self.robot_radius_pub = rospy.Publisher('/robot_radius', Marker, queue_size=10)
+
         
         self.marker_id = 0
         
@@ -116,7 +118,7 @@ class Visualizer:
 
         self.refrence_pose_array_pub.publish(pose_array)
         
-    def create_search_radius_marker(self, search_radius):
+    def search_radius_marker(self, search_radius):
         """Erstellt und veröffentlicht einen Marker für den Suchradius."""
         marker = Marker()
         marker.header.frame_id = "base_link"  # Verankere den Suchradius an der Mitte des Roboters
@@ -141,10 +143,40 @@ class Visualizer:
         marker.color.r = 0.0
         marker.color.g = 0.0
         marker.color.b = 1.0  # Blau
-        marker.color.a = 0.5  # Transparenz
+        marker.color.a = 0.2  # Transparenz
 
         # Veröffentliche den Marker
         self.search_radius_pub.publish(marker)
+        
+    def robot_radius_marker(self, robot_radius):
+        """Erstellt und veröffentlicht einen Marker für den Suchradius."""
+        marker = Marker()
+        marker.header.frame_id = "base_link"  # Verankere den Suchradius an der Mitte des Roboters
+        marker.header.stamp = rospy.Time.now()
+        marker.ns = "search_radius"
+        marker.id = 0
+        marker.type = Marker.CYLINDER
+        marker.action = Marker.ADD
+
+        # Positioniere den Marker in der Mitte des Roboters (base_link)
+        marker.pose.position.x = 0.0
+        marker.pose.position.y = 0.0
+        marker.pose.position.z = 0.0
+        marker.pose.orientation.w = 1.0
+
+        # Setze die Skalierung des Markers (Durchmesser und Höhe)
+        marker.scale.x = robot_radius
+        marker.scale.y = robot_radius
+        marker.scale.z = 0.1  # Höhe des Zylinders (flach)
+
+        # Setze die Farbe des Markers
+        marker.color.r = 1.0
+        marker.color.g = 1.0
+        marker.color.b = 0.5  # Blau
+        marker.color.a = 0.25  # Transparenz
+
+        # Veröffentliche den Marker
+        self.robot_radius_pub.publish(marker)
 
     def publish_obstacle_marker(self, obstacle):
         marker = Marker()

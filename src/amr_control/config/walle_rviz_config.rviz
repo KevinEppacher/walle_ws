@@ -308,6 +308,14 @@ Visualization Manager:
         search_radius: true
       Queue Size: 100
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /robot_radius
+      Name: Marker
+      Namespaces:
+        search_radius: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -336,7 +344,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 8.74020767211914
+      Distance: 5.5323004722595215
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -344,8 +352,8 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 2.1512579917907715
-        Y: -1.4658429622650146
+        X: 0.9969900250434875
+        Y: -0.5413907766342163
         Z: 2.1457672119140625e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
