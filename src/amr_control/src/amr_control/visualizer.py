@@ -43,7 +43,7 @@ class Visualizer:
 
         for obstacle in obstacles:
             marker = Marker()
-            marker.header.frame_id = "base_link"
+            marker.header.frame_id = "map"
             marker.header.stamp = rospy.Time.now()
             marker.ns = "obstacle_detection"
             marker.id = self.marker_id

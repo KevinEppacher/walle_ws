@@ -233,6 +233,9 @@ class TrajectoryPlanner:
             # obs = [
             #     [0.7, 0.5, 0.5]
             # ]
+            # print("Obstacles:")
+            # print(self.obstacles)
+            # print("")
             self.u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, self.T, self.obstacles)
             # self.u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, self.T, obs)
             self.publish_cmd_vel(self.u)

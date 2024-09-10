@@ -81,7 +81,7 @@
     <param name="cube_description" command="cat $(find amr_control)/urdf/cube.urdf"/>
 
     <node name="spawn_cube" pkg="gazebo_ros" type="spawn_model" output="screen"
-          args="-param cube_description -urdf -model cube -x 1.0 -y 0.15 -z 0.15"/>
+          args="-param cube_description -urdf -model cube -x 1.0 -y 0.2 -z 0.15"/>
     
 
     <!-- <node name="spawn_cube" pkg="gazebo_ros" type="spawn_model" output="screen"

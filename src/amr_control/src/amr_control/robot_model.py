@@ -1,5 +1,7 @@
 import casadi as ca
 import numpy as np
+import rospy
+
 
 class RobotModel:
     def __init__(self):
@@ -10,7 +12,7 @@ class RobotModel:
         x = ca.SX.sym('x')
         y = ca.SX.sym('y')
         theta = ca.SX.sym('theta')
-        self.diam = 0.3
+        self.diam = rospy.get_param('nmpc_controller/robot_safety_diam', 0.3)
         self.states = ca.vertcat(x, y, theta)
         self.n_states = self.states.size1()
 
