@@ -1,0 +1,71 @@
+Abstract
+    Mobile robots are widely used in industries, households, and public spaces, such as Autonomous
+    Mobile Robots (AMRs) for transporting goods in intralogistics, vacuum/mower robots, and service
+    robots in restaurants. However, mobile robots face several challenges, including highly dynamic
+    environments, external disturbances such as slippage, which can complicate localization over 
+    long distances, and other environmental factors. The goal of this work is to develop a system that 
+    enables a mobile robot to navigate optimally and collision-free. Several established approaches,
+    such as the Dynamic Window Approach (DWA) and Move Base Flex, have already proven effective.
+    The Dynamic Window Approach limits the robot's velocity space to ensure collision avoidance, while
+    Move Base Flex provides a flexible interface for path planning and execution, allowing for the 
+    integration of different navigation frameworks. In this work, a control system is developed for 
+    dynamic obstacle avoidance using a nonlinear Model Predictive Controller (nMPC). The results are 
+    compared with the well-established Move Base DWA from ROS1. Both controllers are evaluated in a 
+    Gazebo simulation under three conditions: with static objects, with dynamically detected obstacles, 
+    and without obstacle avoidance (i.e., without laser scan).
+
+    (Results will follow...)
+
+1. Introduction
+    Why are mobile robots used?
+    Who uses mobile robots?
+    What are common issues for mobile robots? 
+    (Facts and stats)
+
+2. SOTA
+    Move Base DWA Planner
+    ROS MPC Local Planner
+    Move Base Flex Paper
+    Scientic Contribution:
+        This work contributes to the development of a nonlinear Model Predictive Controller (nMPC)
+        for a differential drive mobile robot with integrated dynamic obstacle avoidance. The nMPC
+        controller is compared to the widely used Dynamic Window Approach (DWA) from the ROS 
+        Navigation stack. The main objective is to design a controller that effectively addresses 
+        the challenges of dynamic obstacle avoidance, offering improved performance in real-time 
+        navigation within dynamic environments.
+
+3. Methods
+    nMPC
+    Trajectory Planner
+    Obstacle Detection
+
+4. Implementation
+    CasAdi
+    ROS Nav
+    Parameter Settings for nMPC controller
+        Table with all params for controller, trajectory planner and obstacle detection
+
+5. Results
+    1. Move Base vs nMPC with static obstacles in Map
+    2. Move Base vs nMPC with static obstacles without Map --> Experiments in narrow Passage
+    3. Move Base vs nMPC with dynamic obstacles
+    4. Experiments ignoring Laser Scan
+
+    Key Characteristics for each experiment:
+        Summed tracking error --> Metrik: Root Mean Square
+        Time to goal
+        Control actions
+        Summed up linear and angular control actions (eg. energy costs)
+        Distance to obstacles
+
+6. Discussion
+    1. Pro and Cons nMPC and Move Base
+    2. Obstacle avoidance as soft constraint instead od hard constraint
+    3. No optimal motion, when included backward motion
+    4. When robot reaches goal within prediction horizon, it ignores refrence trajectory
+
+7. Conclusion
+
+
+
+

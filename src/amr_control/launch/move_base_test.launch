@@ -1,0 +1,55 @@
+<?xml version="1.0" ?>
+<launch>
+  <!-- This launch file is used to launch the move_base node, which is responsible for controlling the robot's movement.
+  It takes several arguments and sets various parameters for the move_base node. -->
+
+  <!-- Arguments -->
+  <!-- model: Specifies the model type of the robot (burger, waffle, waffle_pi). Default value is obtained from the TURTLEBOT3_MODEL environment variable. -->
+  <arg name="model" default="burger" doc="model type [burger, waffle, waffle_pi]"/>
+  
+  <!-- cmd_vel_topic: Specifies the topic for sending velocity commands to the robot. Default value is "/cmd_vel". -->
+  <arg name="cmd_vel_topic" default="/cmd_vel" />
+  <!-- <arg name="cmd_vel_topic" default="/cmd_vel" /> -->
+
+
+  <!-- odom_topic: Specifies the topic for receiving odometry information from the robot. Default value is "odom". -->
+  <arg name="odom_topic" default="odom" />
+  
+  <!-- move_forward_only: Specifies whether the robot should only move forward. Default value is "false". -->
+  <arg name="move_forward_only" default="false"/>
+
+  <!-- move_base -->
+  <!-- The move_base node from the move_base package. It is responsible for planning and executing robot's movements. -->
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+   
+    <!-- base_local_planner: Specifies the local planner plugin to be used for path planning. In this case, it is set to "dwa_local_planner/DWAPlannerROS". -->
+    <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
+    
+    <!-- global_costmap: Loads the parameters for the global costmap from the costmap_common_params_$(arg model).yaml file. -->
+    <rosparam file="$(find amr_control)/param/costmap_common_params_$(arg model).yaml" command="load" ns="global_costmap" />
+    
+    <!-- local_costmap: Loads the parameters for the local costmap from the costmap_common_params_$(arg model).yaml file. -->
+    <rosparam file="$(find amr_control)/param/costmap_common_params_$(arg model).yaml" command="load" ns="local_costmap" />
+    
+    <!-- local_costmap_params: Loads additional parameters for the local costmap from the local_costmap_params.yaml file. -->
+    <rosparam file="$(find amr_control)/param/local_costmap_params.yaml" command="load" />
+    
+    <!-- global_costmap_params: Loads additional parameters for the global costmap from the global_costmap_params.yaml file. -->
+    <rosparam file="$(find amr_control)/param/global_costmap_params.yaml" command="load" />
+    
+    <!-- move_base_params: Loads additional parameters for the move_base node from the move_base_params.yaml file. -->
+    <rosparam file="$(find amr_control)/param/move_base_params.yaml" command="load" />
+    
+    <!-- dwa_local_planner_params: Loads additional parameters for the DWA local planner from the dwa_local_planner_params_$(arg model).yaml file. -->
+    <rosparam file="$(find amr_control)/param/dwa_local_planner_params_$(arg model).yaml" command="load" />
+    
+    <!-- cmd_vel remap: Remaps the "cmd_vel" topic to the value specified by the "cmd_vel_topic" argument. -->
+    <remap from="cmd_vel" to="$(arg cmd_vel_topic)"/>
+    
+    <!-- odom remap: Remaps the "odom" topic to the value specified by the "odom_topic" argument. -->
+    <remap from="odom" to="$(arg odom_topic)"/>
+    
+    <!-- DWAPlannerROS/min_vel_x: Sets the minimum linear velocity in the x-axis for the DWA local planner. This parameter is only set if the "move_forward_only" argument is true. -->
+    <param name="DWAPlannerROS/min_vel_x" value="0.0" if="$(arg move_forward_only)" />
+  </node>
+</launch>
