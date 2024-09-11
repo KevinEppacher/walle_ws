@@ -3,6 +3,15 @@
     <arg name="world_name" default="$(find amr_control)/worlds/experiment_rooms/worlds/room4/world.model" />
     <arg name="model" default="burger" />
 
+    <!-- Arguments for initial pose of the robot -->
+    <!-- <arg name="init_pose_x" default="0" />
+    <arg name="init_pose_y" default="0" />
+    <arg name="init_pose_yaw" default="0" /> -->
+
+    <arg name="init_pose_x" default="4.5" />
+    <arg name="init_pose_y" default="-1.0" />
+    <arg name="init_pose_yaw" default="1.57" />
+
     <!-- Create gazebo world -->
     <include file="$(find gazebo_ros)/launch/empty_world.launch" >
         <arg name="world_name" value="$(arg world_name)"/>  
@@ -17,7 +26,7 @@
     <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_burger.urdf.xacro"/>
 
     <!-- Spawn TurtleBot3 URDF model in Gazebo -->
-    <node pkg="gazebo_ros" type="spawn_model" name="spawn_turtlebot" args="-urdf -model turtlebot3_burger -x 0.0 -y 0.0 -z 0.1 -Y 0 -param robot_description" />
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_turtlebot" args="-urdf -model turtlebot3_burger -x $(arg init_pose_x) -y $(arg init_pose_y) -z 0.1 -Y $(arg init_pose_yaw) -param robot_description" />
 
     <!-- Include the turtlebot3_remote.launch file -->
     <include file="$(find turtlebot3_bringup)/launch/turtlebot3_remote.launch"/>
@@ -40,9 +49,12 @@
         <param name="transform_tolerance"       value="0.5"/>
         <param name="recovery_alpha_slow"       value="0.00"/>
         <param name="recovery_alpha_fast"       value="0.00"/>
-        <param name="initial_pose_x"            value="0.0"/>
+        <param name="initial_pose_x"            value="$(arg init_pose_x)"/>
+        <param name="initial_pose_y"            value="$(arg init_pose_y)"/>
+        <param name="initial_pose_a"            value="$(arg init_pose_yaw)"/>
+        <!-- <param name="initial_pose_x"            value="0.0"/>
         <param name="initial_pose_y"            value="0.0"/>
-        <param name="initial_pose_a"            value="0"/>
+        <param name="initial_pose_a"            value="0"/> -->
         <param name="gui_publish_rate"          value="50.0"/>
 
         <!-- Remap scan topic -->
@@ -75,10 +87,10 @@
     <rosparam file="$(find amr_control)/param/costmap_common_params_$(arg model).yaml" command="load" ns="global_costmap"/>
     
     <!-- Include move_base -->
-    <include file="$(find amr_control)/launch/move_base.launch" />
+    <include file="$(find amr_control)/launch/move_base_nMPC.launch" />
 
     <!-- Include move_base -->
-    <!-- <include file="$(find amr_control)/launch/move_base_test.launch" /> -->
+    <!-- <include file="$(find amr_control)/launch/move_base_DWA.launch" /> -->
 
     <!-- Cube in Gazebo laden -->
     <param name="cube_description" command="cat $(find amr_control)/urdf/cube.urdf"/>

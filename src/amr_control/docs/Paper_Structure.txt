@@ -59,7 +59,7 @@ Abstract
         Distance to obstacles
 
 6. Discussion
-    1. Pro and Cons nMPC and Move Base
+    1. Pro and Cons nMPC vs Move Base
     2. Obstacle avoidance as soft constraint instead od hard constraint
     3. No optimal motion, when included backward motion
     4. When robot reaches goal within prediction horizon, it ignores refrence trajectory

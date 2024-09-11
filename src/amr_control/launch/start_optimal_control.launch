@@ -3,8 +3,24 @@
     <!-- Lade das YAML-File mit Parametern -->
     <rosparam file="$(find amr_control)/param/optimal_control_params.yaml" />
 
+    <!-- Starte die amr_control Nodes -->
     <node name="optimal_control" pkg="amr_control" type="optimal_control.py" output="screen" />
+    
+    <node name="obstacle_detection" pkg="amr_control" type="obstacle_detection.py" />
+    
+    <node name="move_base_execution" pkg="amr_control" type="move_base_execution.py" output="screen" />
 
-    <node name="obstacle_detection" pkg="amr_control" type="obstacle_detection.py" output="screen" />
+    <node name="path_recorder" pkg="amr_control" type="path_recorder.py" output="screen" />
 
+    <node name="move_urdf_box" pkg="amr_control" type="move_urdf_box.py" output="screen" />
+
+    <!-- Speicherort für die Bag-Datei in amr_control/data -->
+    <arg name="bag_path" default="$(find amr_control)/data/recorded_data_nMPC_6.bag" />
+
+    <!-- <arg name="bag_path" default="$(find amr_control)/data/recorded_data_DWA_4.bag" /> -->
+    
+    <!-- Starte rosbag record, um die gewünschten Topics zu speichern -->
+    <node name="rosbag_record" pkg="rosbag" type="record" output="screen" required="true"
+          args="-O $(arg bag_path) /cmd_vel /amcl_pose /odom /clock /scan /predicted_trajectory /refrence_trajectory /robot_path_nMPC /robot_path_DWA" />
+          
 </launch>

@@ -1,0 +1,9 @@
+<launch>
+    <!-- Play ROS bag file with specific topic -->
+    <node name="rosbag_play_nMPC" pkg="rosbag" type="play" args="$(find amr_control)/data/recorded_data_nMPC_2.bag --topics /robot_path" output="screen"/>
+    
+    <node name="rosbag_play_DWA" pkg="rosbag" type="play" args="$(find amr_control)/data/recorded_data_DWA_3.bag --topics /robot_path_DWA" output="screen"/>
+
+    <!-- Set the simulated time to true if working with bag files -->
+    <param name="/use_sim_time" value="true"/>
+</launch>

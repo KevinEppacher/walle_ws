@@ -3,7 +3,7 @@
   <link name="cube_link">
     <visual>
       <geometry>
-        <box size="0.3 0.3 0.3"/> <!-- Visuelle Größe des Würfels: 0.3x0.3x0.3 Meter -->
+        <box size="0.2 0.2 0.2"/> <!-- Visuelle Größe des Würfels: 0.3x0.3x0.3 Meter -->
       </geometry>
       <material name="blue">
         <color rgba="0 0 1 1"/> <!-- Farbe des Würfels: Blau -->
@@ -11,7 +11,7 @@
     </visual>
     <collision>
       <geometry>
-        <box size="0.3 0.3 0.3"/> <!-- Kollisionseigenschaften: 0.3x0.3x0.3 Meter -->
+        <box size="0.2 0.2 0.2"/> <!-- Visuelle Größe des Würfels: 0.3x0.3x0.3 Meter -->
       </geometry>
     </collision>
     <inertial>

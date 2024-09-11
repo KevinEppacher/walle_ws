@@ -98,3 +98,32 @@ catkin_install_python(PROGRAMS
 DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
+############################################################
+# CMakelist for move_base_execution node
+############################################################
+
+# Install Python scripts
+catkin_install_python(PROGRAMS
+  scripts/move_base_execution.py 
+DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+############################################################
+# CMakelist for path_recorder node
+############################################################
+
+# Install Python scripts
+catkin_install_python(PROGRAMS
+  scripts/path_recorder.py 
+DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+############################################################
+# CMakelist for move_urdf_box node
+############################################################
+
+# Install Python scripts
+catkin_install_python(PROGRAMS
+  scripts/move_urdf_box.py 
+DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)

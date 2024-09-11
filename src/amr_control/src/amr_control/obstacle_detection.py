@@ -34,13 +34,13 @@ class ObstacleDetection:
         self.visualizer = Visualizer()
 
         # Initialisiere den Dynamic Reconfigure Server
-        self.server = Server(ObstacleDetectionConfig, self.dynamic_reconfigure_callback)
+        # self.server = Server(ObstacleDetectionConfig, self.dynamic_reconfigure_callback)
 
-    def dynamic_reconfigure_callback(self, config, level):
-        """Callback, der aufgerufen wird, wenn der Dynamic Reconfigure Parameter geändert wird."""
-        rospy.loginfo(f"Reconfigure Request: Quality Level: {config['qualityLevel']}")
-        self.quality_level = config['qualityLevel']
-        return config
+    # def dynamic_reconfigure_callback(self, config, level):
+    #     """Callback, der aufgerufen wird, wenn der Dynamic Reconfigure Parameter geändert wird."""
+    #     rospy.loginfo(f"Reconfigure Request: Quality Level: {config['qualityLevel']}")
+    #     self.quality_level = config['qualityLevel']
+    #     return config
 
     def lidar_callback(self, data):
         """Speichert die neuesten Lidar-Daten zur späteren Verarbeitung."""
@@ -133,7 +133,7 @@ class ObstacleDetection:
             obstacles.append([transformed_x, transformed_y, obstacle_diameter])
 
         # Visualisiere alle Kreise im Array
-        self.visualizer.create_marker_array(obstacles)
+        # self.visualizer.create_marker_array(obstacles)
 
         # Veröffentliche die erkannten Ecken als Hindernisse
         self.obstacle_pub.publish(obstacles_msg)
