@@ -15,7 +15,7 @@
     <node name="move_urdf_box" pkg="amr_control" type="move_urdf_box.py" output="screen" />
 
     <!-- Speicherort für die Bag-Datei in amr_control/data -->
-    <arg name="bag_path" default="$(find amr_control)/data/recorded_data_nMPC_6.bag" />
+    <arg name="bag_path" default="$(find amr_control)/data/recorded_data_nMPC_13.bag" />
 
     <!-- <arg name="bag_path" default="$(find amr_control)/data/recorded_data_DWA_4.bag" /> -->
     
