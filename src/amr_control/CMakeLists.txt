@@ -127,3 +127,13 @@ catkin_install_python(PROGRAMS
   scripts/move_urdf_box.py 
 DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+############################################################
+# CMakelist for plot_paths node
+############################################################
+
+# Install Python scripts
+catkin_install_python(PROGRAMS
+  scripts/plot_paths.py 
+DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
