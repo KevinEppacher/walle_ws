@@ -1,95 +1,69 @@
-import rosbag
-import os
-import roslib
-import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
-from tf.transformations import euler_from_quaternion
+import matplotlib.patches as patches
+from matplotlib.transforms import Affine2D
+import numpy as np
 
-# Funktion zum Verarbeiten der Pfad-Daten (inkl. Orientierung)
-def process_path_data(path_msg):
-    path_x = []
-    path_y = []
-    for pose in path_msg.poses:
-        path_x.append(pose.pose.position.x)
-        path_y.append(pose.pose.position.y)
-    return path_x, path_y
 
-# Funktion zum Zeichnen der Boxen (komplett gefüllt in Schwarz)
-def draw_filled_box(ax, x_center, y_center, width, height, yaw=0):
-    # Berechne die linke untere Ecke basierend auf dem Mittelpunkt und der Größe
-    lower_left_x = x_center - width / 2
-    lower_left_y = y_center - height / 2
-    # Erstelle das gefüllte Rechteck (Box)
-    rect = Rectangle((lower_left_x, lower_left_y), width, height, angle=yaw, linewidth=1, edgecolor='black', facecolor='black')
+def draw_rotated_rectangle(x, y, width, height, angle, ax):
+    """Draw a rotated rectangle."""
+    theta = np.radians(angle)
+    # Create a rectangle centered at (0, 0)
+    rect = patches.Rectangle((-width/2, -height/2), width, height, linewidth=1, edgecolor='r', facecolor='none')
+    # Apply the rotation and translation
+    t = plt.gca().transData
+    t_rot = Affine2D().rotate(theta).translate(x, y) + t
+    rect.set_transform(t_rot)
     ax.add_patch(rect)
 
-# Hole den Pfad zum ROS-Package amr_control
-amr_control_path = roslib.packages.get_pkg_dir('amr_control')
+# Create figure and axes
+fig, ax = plt.subplots()
 
-# Vollständige Pfade zu den Rosbag-Dateien
-bag_nmpc_path = os.path.join(amr_control_path, 'data/recorded_data_nMPC_2.bag')
-bag_dwa_path = os.path.join(amr_control_path, 'data/recorded_data_DWA_3.bag')
+# Drawing walls (rectangles) as described in the SDF file
+# Parameters are: (x, y, width, height, rotation in degrees)
+walls = [
+    (-14.925, 0, 5, 0.15, -90),
+    (-0.031145, -2.425, 30, 0.15, 0),
+    (-5.055, 1.375, 2.25, 0.15, -90),
+    (-4.88, 0.325, 0.5, 0.15, 0),
+    (-4.705, 1.375, 2.25, 0.15, 90),
+    (-4.88, -0.525, 0.5, 0.15, 0),
+    (-4.705, -1.45, 2, 0.15, -90),
+    (-5.055, -1.45, 2, 0.15, -90),
+    (14.925, 0, 5, 0.15, 90),
+    (-0.031145, 2.425, 30, 0.15, 180),
+    (5.185, -1.44, 2, 0.15, -90),
+    (5.36, -0.515, 0.5, 0.15, 0),
+    (5.535, -1.44, 2, 0.15, -90),
+    (5.175, 1.365, 2.25, 0.15, 90),
+    (5.35, 0.315, 0.5, 0.15, 0),
+    (5.525, 1.365, 2.25, 0.15, 90)
+]
 
-# Öffne die Rosbags mit dem vollständigen Pfad
-bag_nmpc = rosbag.Bag(bag_nmpc_path)
-bag_dwa = rosbag.Bag(bag_dwa_path)
+# Drawing walls as rectangles with rotation
+for wall in walls:
+    draw_rotated_rectangle(wall[0], wall[1], wall[2], wall[3], wall[4], ax)
 
-# Extrahiere die Pfad-Daten für nMPC und DWA
-nmpc_path_x, nmpc_path_y = [], []
-dwa_path_x, dwa_path_y = [], []
+# Drawing cylinders (circles) as described in the SDF file
+# Parameters are: (x, y, radius, rotation in degrees)
+cylinders = [
+    (-2.04473, 1.37495, 0.5, 0),
+    (-3.11174, -1.27262, 0.278354, 0),
+    (3.55449, -1.48911, 0.278354, 0),
+    (-0.526371, -1.58176, 0.278354, 0),
+    (-4.12027, 0.785226, 0.278354, 0)
+]
 
-for topic, msg, t in bag_nmpc.read_messages(topics=['/robot_path']):
-    nmpc_path_x, nmpc_path_y = process_path_data(msg)
+# Drawing circles (cylinders) on the plot
+for cylinder in cylinders:
+    circ = patches.Circle((cylinder[0], cylinder[1]), cylinder[2], linewidth=1, edgecolor='b', facecolor='none')
+    ax.add_patch(circ)
 
-for topic, msg, t in bag_dwa.read_messages(topics=['/robot_path_DWA']):
-    dwa_path_x, dwa_path_y = process_path_data(msg)
+# Adjust the limits to ensure all objects are visible
+ax.set_xlim(-20, 20)
+ax.set_ylim(-5, 5)
 
-# Schließe die Rosbag-Dateien
-bag_nmpc.close()
-bag_dwa.close()
+# Setting the aspect of the plot to be equal
+ax.set_aspect('equal')
 
-# Erstelle die Figur und Achsen
-fig, ax = plt.subplots(figsize=(10, 6))
-
-# Plot für nMPC-Pfad
-ax.plot(nmpc_path_x, nmpc_path_y, label='nMPC Path', color='green', linestyle='-', linewidth=2)
-
-# Plot für DWA-Pfad
-ax.plot(dwa_path_x, dwa_path_y, label='DWA Path', color='red', linestyle='--', linewidth=2)
-
-# Boxen hinzufügen (basierend auf den Screenshots) und komplett in Schwarz füllen
-# Box 1
-draw_filled_box(ax, 4.928850, -0.5, 0.01, 0.5)
-
-# Box 2
-draw_filled_box(ax, 5.184960, -1.439995, 0.15, 2.0)
-
-# Box 3
-draw_filled_box(ax, 5.359950, -0.515000, 0.5, 0.15)
-
-# Box 4
-draw_filled_box(ax, 5.534950, -1.439995, 0.15, 2.0)
-
-# Box 5
-draw_filled_box(ax, 5.174960, 1.364995, 0.155, 0.15)
-
-# Box 6
-draw_filled_box(ax, 5.349960, 0.315000, 0.5, 0.15)
-
-# Box 7
-draw_filled_box(ax, 5.524950, 1.364995, 2.25, 0.15)
-
-# Gitter hinzufügen
-ax.grid(True, which='both', linestyle='--', linewidth=0.5)
-
-# Legenden und Achsenbeschriftung
-plt.xlabel('X [m]')
-plt.ylabel('Y [m]')
-plt.title('Comparison of nMPC and DWA Paths with Black Box Obstacles')
-
-# Achsskalierung für gleichmäßige Darstellung
-plt.axis('equal')
-
-# Plot anzeigen
+# Display the plot
 plt.show()
