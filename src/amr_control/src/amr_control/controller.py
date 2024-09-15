@@ -181,7 +181,7 @@ class nMPC:
             args['p'][offset + 3 * i: offset + 3 * (i + 1)] = obs
 
         for i in range(reserved_obstacles):
-            args['p'][offset_reserved_obstacles + 3 * i: offset_reserved_obstacles + 3 * (i + 1)] = [10000, 10000, -1000]
+            args['p'][offset_reserved_obstacles + 3 * i: offset_reserved_obstacles + 3 * (i + 1)] = [-10000, -10000, -1000]
             
         # Füge T zum Parametervektor hinzu (letzter Eintrag in args['p'])
         args['p'][-1] = T

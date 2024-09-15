@@ -23,7 +23,7 @@ def move_cube():
         # Bewege den Würfel nach oben und unten mit einer Sinus-Funktion
         x_position = 3.0 + math.cos(t) / 2
         y_position = math.sin(t) / 2
-        t += 0.04
+        t -= 0.04
 
         # Setze die neue Position
         state_msg.pose.position.z = 0.1

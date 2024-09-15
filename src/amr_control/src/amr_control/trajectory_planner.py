@@ -233,6 +233,13 @@ class TrajectoryPlanner:
         if np.linalg.norm(self.current_state - self.target_state, 2) > self.goal_tolerance:
             self.viz.create_marker_array(self.obstacles)
             self.u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, self.T, self.obstacles)
+            
+            # obs = [
+            #     [5, -0.5, 0.4],
+            #     [5.4, -0.5, 0.4],
+            #     [5.3, 0.9, 0.8 * 2]
+            # ]
+            # self.viz.create_marker_array(obs)
             # self.u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, self.T, obs)
             self.publish_cmd_vel(self.u)
         else:

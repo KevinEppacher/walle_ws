@@ -5,7 +5,20 @@ import numpy as np
 import rosbag
 import os
 import roslib
-from matplotlib.patches import Rectangle
+
+# ------------------------- CONFIGURABLE PARAMETERS -------------------------
+# ROSBAG file paths
+bag_nmpc_filename = 'recorded_data_nMPC_9.bag'
+bag_dwa_filename = 'recorded_data_DWA_7.bag'
+
+# ROS topics for paths
+topic_nmpc = '/robot_path'
+topic_dwa = '/robot_path_DWA'
+
+# Angle for cube placement along the dashed circle (in degrees)
+cube_angle_on_circle = 90  # Set the angle where you want to place the cube
+cube_size = 0.2  # Size of the cube (0.2 x 0.2)
+# ---------------------------------------------------------------------------
 
 def draw_rotated_rectangle(x, y, width, height, angle, ax):
     """Draw a rotated rectangle."""
@@ -26,6 +39,13 @@ def process_path_data(path_msg):
         path_x.append(pose.pose.position.x)
         path_y.append(pose.pose.position.y)
     return path_x, path_y
+
+# Function to calculate the position on the circle based on the angle
+def calculate_position_on_circle(center_x, center_y, radius, angle_deg):
+    angle_rad = np.radians(angle_deg)
+    x = center_x + radius * np.cos(angle_rad)
+    y = center_y + radius * np.sin(angle_rad)
+    return x, y
 
 # Drawing the environment (walls, cylinders, rectangles)
 fig, ax = plt.subplots()
@@ -80,11 +100,22 @@ rectangles = [
 for rect in rectangles:
     draw_rotated_rectangle(rect[0], rect[1], rect[2], rect[3], rect[4], ax)
 
+# Drawing the new door box (as described in cube.urdf)
+draw_rotated_rectangle(5.0, -0.5, 0.01, 0.5, 0, ax)
+
+# Drawing the dashed circle with diameter = 1 (radius = 0.5)
+dashed_circle = patches.Circle((3, 0), 0.5, linewidth=1, edgecolor='k', facecolor='none', linestyle='--')
+ax.add_patch(dashed_circle)
+
+# Draw a black-filled cube along the dashed circle at a specified angle
+cube_x, cube_y = calculate_position_on_circle(3, 0, 0.5, cube_angle_on_circle)  # Position along the circle
+draw_rotated_rectangle(cube_x, cube_y, cube_size, cube_size, 0, ax)  # Cube size is 0.2 x 0.2
+
 # Loading paths from ROSBAGs
 amr_control_path = roslib.packages.get_pkg_dir('amr_control')
 
-bag_nmpc_path = os.path.join(amr_control_path, 'data/recorded_data_nMPC_2.bag')
-bag_dwa_path = os.path.join(amr_control_path, 'data/recorded_data_DWA_3.bag')
+bag_nmpc_path = os.path.join(amr_control_path, f'data/{bag_nmpc_filename}')
+bag_dwa_path = os.path.join(amr_control_path, f'data/{bag_dwa_filename}')
 
 bag_nmpc = rosbag.Bag(bag_nmpc_path)
 bag_dwa = rosbag.Bag(bag_dwa_path)
@@ -93,10 +124,10 @@ bag_dwa = rosbag.Bag(bag_dwa_path)
 nmpc_path_x, nmpc_path_y = [], []
 dwa_path_x, dwa_path_y = [], []
 
-for topic, msg, t in bag_nmpc.read_messages(topics=['/robot_path']):
+for topic, msg, t in bag_nmpc.read_messages(topics=[topic_nmpc]):
     nmpc_path_x, nmpc_path_y = process_path_data(msg)
 
-for topic, msg, t in bag_dwa.read_messages(topics=['/robot_path_DWA']):
+for topic, msg, t in bag_dwa.read_messages(topics=[topic_dwa]):
     dwa_path_x, dwa_path_y = process_path_data(msg)
 
 # Close the ROSBAGs
@@ -111,7 +142,7 @@ ax.plot(dwa_path_x, dwa_path_y, label='DWA Path', color='red', linestyle='--', l
 ax.grid(True, which='both', linestyle='--', linewidth=0.5)
 plt.xlabel('X [m]')
 plt.ylabel('Y [m]')
-plt.title('nMPC and DWA Paths with Black Box Obstacles')
+plt.title('nMPC and DWA Paths with Black Box Obstacles and Dashed Circle')
 
 # Axis scaling and plot display
 plt.axis('equal')
