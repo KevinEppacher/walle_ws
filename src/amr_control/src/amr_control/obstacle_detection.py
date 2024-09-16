@@ -24,7 +24,8 @@ class ObstacleDetection:
         self.min_distance = rospy.get_param('obstacle_detection/min_distance', 20)  # Prediction distance
         self.loop_rate = rospy.get_param('obstacle_detection/loop_rate', 1)  # Prediction distance
         self.max_objects = rospy.get_param('nmpc_controller/max_obstacles', 10)  # Maximum number of obstacles
-        
+        self.search_angle = rospy.get_param('obstacle_detection/search_angle', 90)  # Suchkegelwinkel in Grad
+
         # Initialize ROS publishers and subscribers
         self.lidar_sub = rospy.Subscriber('/scan', LaserScan, self.lidar_callback)
         self.obstacle_pub = rospy.Publisher('/detected_obstacles', Float32MultiArray, queue_size=10)
@@ -32,15 +33,6 @@ class ObstacleDetection:
         self.latest_scan_data = None
         
         self.visualizer = Visualizer()
-
-        # Initialisiere den Dynamic Reconfigure Server
-        # self.server = Server(ObstacleDetectionConfig, self.dynamic_reconfigure_callback)
-
-    # def dynamic_reconfigure_callback(self, config, level):
-    #     """Callback, der aufgerufen wird, wenn der Dynamic Reconfigure Parameter geändert wird."""
-    #     rospy.loginfo(f"Reconfigure Request: Quality Level: {config['qualityLevel']}")
-    #     self.quality_level = config['qualityLevel']
-    #     return config
 
     def lidar_callback(self, data):
         """Speichert die neuesten Lidar-Daten zur späteren Verarbeitung."""
@@ -51,6 +43,7 @@ class ObstacleDetection:
         lidar_ranges = np.array(data.ranges)
         lidar_angles = np.linspace(data.angle_min, data.angle_max, len(lidar_ranges))
         
+        # Filter out obstacles outside the search radius
         indices = np.where(lidar_ranges < self.search_radius)
         filtered_ranges = lidar_ranges[indices]
         filtered_angles = lidar_angles[indices]
@@ -64,7 +57,6 @@ class ObstacleDetection:
 
         if corners is not None:
             self.publish_corners_as_circles(corners)
-
 
     def create_lidar_image(self, x_points, y_points):
         max_range = int(self.search_radius * 100)
@@ -103,8 +95,10 @@ class ObstacleDetection:
             rospy.logwarn("Unable to get robot pose from TF")
             return
         
-        # Berechne die Entfernung zum Roboter für jede Ecke (Sortierung nach Entfernung)
+        # Berechne die Entfernung und den Winkel relativ zur Bewegungsrichtung für jede Ecke
         distances = []
+        search_angle_rad = np.radians(self.search_angle / 2)  # Suchwinkel in Bogenmaß (halber Winkel)
+
         for corner in corners:
             x, y = corner.ravel()
             obstacle_x = (x - max_range) / 100.0  # Umrechnung in Meter
@@ -114,8 +108,13 @@ class ObstacleDetection:
             transformed_x = robot_x + (obstacle_x * np.cos(yaw) - obstacle_y * np.sin(yaw))
             transformed_y = robot_y + (obstacle_x * np.sin(yaw) + obstacle_y * np.cos(yaw))
             
-            distance = np.sqrt(obstacle_x**2 + obstacle_y**2)  # Berechne die euklidische Entfernung zum Roboter
-            distances.append((distance, transformed_x, transformed_y))
+            # Berechne den Winkel relativ zur Bewegungsrichtung des Roboters
+            angle_to_obstacle = np.arctan2(obstacle_y, obstacle_x)
+
+            # Filter: nur Hindernisse innerhalb des Suchkegels berücksichtigen
+            if abs(angle_to_obstacle) <= search_angle_rad:
+                distance = np.sqrt(obstacle_x ** 2 + obstacle_y ** 2)  # Berechne die euklidische Entfernung zum Roboter
+                distances.append((distance, transformed_x, transformed_y))
 
         # Sortiere die Ecken basierend auf der Entfernung (nächstes Hindernis zuerst)
         sorted_distances = sorted(distances, key=lambda d: d[0])
@@ -137,15 +136,14 @@ class ObstacleDetection:
 
         # Veröffentliche die erkannten Ecken als Hindernisse
         self.obstacle_pub.publish(obstacles_msg)
-        rospy.loginfo(f"Published {len(sorted_distances)} nearest corners as circles.")
-        
+        rospy.loginfo(f"Published {len(sorted_distances)} nearest corners within search cone.")
+
     def get_yaw_from_quaternion(self, quaternion):
         """Konvertiert Quaternion in Yaw-Winkel."""
         norm = np.linalg.norm(quaternion)
         quaternion = [x / norm for x in quaternion]
         _, _, yaw = euler_from_quaternion(quaternion)
         return yaw
-
 
     def run(self):
         rate = rospy.Rate(self.loop_rate)  # Setze die Veröffentlichungsrate auf 2 Hz

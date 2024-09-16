@@ -52,7 +52,7 @@ class nMPC:
         Q = self.Q
         R = self.R
         N = self.N
-        
+                
         U = ca.SX.sym('U', n_controls, N)
         # Erweitere den Parametervektor um 1 zusätzlichen Eintrag für T
         P = ca.SX.sym('P', n_states + N * (n_states + n_controls) + self.n_obstacles * 3 + 1)

@@ -5,7 +5,6 @@ Der Abstract wird grundsätzlich als letztes geschrieben. Die Überprüfbarkeit 
 
 "The goal of this work is to develop a system that enables a mobile robot to navigate optimally and collision-free."
 
-Das ist eine sehr starke Aussage -> MPC ist zwar optimal control, arbeitet aber mit einem eingeschränkten Horizon und einer eingeschränkten Updaterate. Ich würde den Beitrag ähnlich wie beim Feedback zu Ch1 abmildern und auf den Umgang mit dynamischer Umgebung fokussieren
 
 "Several established approaches,such as the Dynamic Window Approach (DWA) and Move Base Flex, have already proven effective. The Dynamic Window Approach limits the robot's velocity space to ensure collision avoidance, while Move Base Flex provides a flexible interface for path planning and execution, allowing for the integration of different navigation frameworks."
 
