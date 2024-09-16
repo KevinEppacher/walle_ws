@@ -9,14 +9,18 @@ import roslib
 # ------------------------- CONFIGURABLE PARAMETERS -------------------------
 # ROSBAG file paths
 bag_nmpc_filename = 'recorded_data_nMPC_14.bag'
-bag_dwa_filename = 'recorded_data_DWA_9.bag'
+bag_dwa_filename = 'recorded_data_DWA_8.bag'
 
 # ROS topics for paths
-topic_nmpc = '/robot_path_DWA'
+topic_nmpc = '/robot_path'
 topic_dwa = '/robot_path_DWA'
 
 # Angle for cube placement along the dashed circle (in degrees)
-cube_angle_on_circle = 90  # Set the angle where you want to place the cube
+cube_angle_on_circle_1 = 45  # Set the angle where you want to place the cube
+cube_size = 0.2  # Size of the cube (0.2 x 0.2)
+
+# Angle for cube placement along the dashed circle (in degrees)
+cube_angle_on_circle_2 = 190  # Set the angle where you want to place the cube
 cube_size = 0.2  # Size of the cube (0.2 x 0.2)
 
 # Drawing the environment (walls, cylinders, rectangles)
@@ -114,8 +118,12 @@ dashed_circle = patches.Circle((3, 0), 0.5, linewidth=1, edgecolor='k', facecolo
 ax.add_patch(dashed_circle)
 
 # Draw a black-filled cube along the dashed circle at a specified angle
-cube_x, cube_y = calculate_position_on_circle(3, 0, 0.5, cube_angle_on_circle)  # Position along the circle
-draw_rotated_rectangle(cube_x, cube_y, cube_size, cube_size, 0, ax)  # Cube size is 0.2 x 0.2
+cube_x_1, cube_y_1 = calculate_position_on_circle(3, 0, 0.5, cube_angle_on_circle_1)  # Position along the circle
+draw_rotated_rectangle(cube_x_1, cube_y_1, cube_size, cube_size, 0, ax)  # Cube size is 0.2 x 0.2
+
+# Draw a black-filled cube along the dashed circle at a specified angle
+cube_x_2, cube_y_2 = calculate_position_on_circle(3, 0, 0.5, cube_angle_on_circle_2)  # Position along the circle
+draw_rotated_rectangle(cube_x_2, cube_y_2, cube_size, cube_size, 0, ax)  # Cube size is 0.2 x 0.2
 
 # Loading paths from ROSBAGs
 amr_control_path = roslib.packages.get_pkg_dir('amr_control')
@@ -154,8 +162,10 @@ plt.title('nMPC and DWA Paths with dynamic Obstacle Avoidance', fontsize=axis_la
 ax.tick_params(axis='both', which='major', labelsize=tick_label_fontsize)
 
 # Axis scaling and plot display
-plt.axis('equal')
-# plt.xlim(4.5, 7)
-# plt.ylim(-1, 0.5)
+# plt.axis('equal')
+# plt.xlim(0, 7)
+# plt.ylim(-2, 2)
+plt.xlim(4.5, 7)
+plt.ylim(-1, 0.5)
 plt.legend()
 plt.show()
