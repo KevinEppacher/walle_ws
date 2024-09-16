@@ -23,6 +23,8 @@ class nMPC:
         # Weighting matrices
         Q_param = rospy.get_param('nmpc_controller/Q', [100, 100, 0.001])  # Diagonal values for Q
         R_param = rospy.get_param('nmpc_controller/R', [0.05, 0.05])  # Diagonal values for R
+        S_param = rospy.get_param('nmpc_controller/S', [1, 1, 0.0])  # Diagonal values for terminal cost
+        self.S = np.diag(S_param)  # Convert list to diagonal matrix
         self.Q = np.diag(Q_param)  # Convert list to diagonal matrix
         self.R = np.diag(R_param)  # Convert list to diagonal matrix
         # Maximum number of obstacles
@@ -52,9 +54,9 @@ class nMPC:
         Q = self.Q
         R = self.R
         N = self.N
-                
+        S = self.S
+
         U = ca.SX.sym('U', n_controls, N)
-        # Erweitere den Parametervektor um 1 zusätzlichen Eintrag für T
         P = ca.SX.sym('P', n_states + N * (n_states + n_controls) + self.n_obstacles * 3 + 1)
         X = ca.SX.sym('X', n_states, N + 1)
         rob_diam = self.model.diam
@@ -70,7 +72,7 @@ class nMPC:
         T = P[-1]
 
         # Loop über den Prediction-Horizont
-        for k in range(N):
+        for k in range(N-1):
             st = X[:, k]
             con = U[:, k]
             
@@ -88,7 +90,12 @@ class nMPC:
             f_value = self.model.f(st, con)
             st_next_euler = st + T * f_value  # Verwende T aus dem Parametervektor
             g = ca.vertcat(g, st_next - st_next_euler)
-                            
+        
+        # Füge die Terminalkosten für den Endzustand hinzu
+        terminal_state = X[:, N]  # Zustand am Ende des Horizonts
+        print("Terminal State: ", terminal_state)
+        obj += ca.mtimes([terminal_state.T, S, terminal_state]) / 2
+
         # Hindernisvermeidungs-Constraints
         for k in range(N + 1):
             for i in range(self.n_obstacles):
@@ -112,16 +119,17 @@ class nMPC:
         return ca.nlpsol('solver', 'ipopt', nlp_prob, opts)
 
 
+
     def solve_mpc(self, current_state, ref_traj, target_state, T, obstacles):
         self.obstacles = obstacles
         n_obstacles = self.n_obstacles
         N = self.N
         
         self.viz.robot_radius_marker(self.model.diam)
-
+        
         args = {
-            'lbg': np.concatenate((np.zeros((3 * (self.N + 1), 1)), np.full((self.n_obstacles * (self.N + 1), 1), -np.inf))),
-            'ubg': np.concatenate((np.zeros((3 * (self.N + 1), 1)), np.full((self.n_obstacles * (self.N + 1), 1), 0))),
+            'lbg': np.concatenate((np.zeros((3 * self.N, 1)), np.full((self.n_obstacles * (self.N + 1), 1), -np.inf))),
+            'ubg': np.concatenate((np.zeros((3 * self.N, 1)), np.full((self.n_obstacles * (self.N + 1), 1), 0))),
             'lbx': np.full((3 * (self.N + 1) + 2 * self.N, 1), -ca.inf),
             'ubx': np.full((3 * (self.N + 1) + 2 * self.N, 1), ca.inf),
             'p': np.zeros((self.model.n_states + self.N * (self.model.n_states + self.model.n_controls) + 3 * self.n_obstacles + 1,))
@@ -203,6 +211,7 @@ class nMPC:
 
         for k in range(N):
             f_value = self.model.f(X_pred[k, :], u[k, :]).full().flatten()
+            print(f_value)
             X_pred[k + 1, :] = X_pred[k, :] + T * f_value
 
         # Update X0 with the new predicted trajectory
