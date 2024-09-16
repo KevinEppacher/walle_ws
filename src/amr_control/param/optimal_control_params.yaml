@@ -8,7 +8,7 @@ nmpc_controller:
   omega_min: -0.5  # Minimale Winkelgeschwindigkeit
   omega_max: 0.5  # Maximale Winkelgeschwindigkeit
   max_obstacles: 3  # Maximale Anzahl an Hindernissen
-  robot_safety_diam: 0.4  # Sicherheitsradius des Roboters
+  robot_safety_diam: 0.35  # Sicherheitsradius des Roboters
 
 trajectory_planner:
   # init_position: [0.0, 0.0, 0.0]  # Initiale Position

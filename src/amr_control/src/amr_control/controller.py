@@ -93,7 +93,6 @@ class nMPC:
         
         # Füge die Terminalkosten für den Endzustand hinzu
         terminal_state = X[:, N]  # Zustand am Ende des Horizonts
-        print("Terminal State: ", terminal_state)
         obj += ca.mtimes([terminal_state.T, S, terminal_state]) / 2
 
         # Hindernisvermeidungs-Constraints
@@ -211,7 +210,6 @@ class nMPC:
 
         for k in range(N):
             f_value = self.model.f(X_pred[k, :], u[k, :]).full().flatten()
-            print(f_value)
             X_pred[k + 1, :] = X_pred[k, :] + T * f_value
 
         # Update X0 with the new predicted trajectory
