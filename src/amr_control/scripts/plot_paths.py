@@ -8,16 +8,24 @@ import roslib
 
 # ------------------------- CONFIGURABLE PARAMETERS -------------------------
 # ROSBAG file paths
-bag_nmpc_filename = 'recorded_data_nMPC_9.bag'
-bag_dwa_filename = 'recorded_data_DWA_7.bag'
+bag_nmpc_filename = 'recorded_data_nMPC_14.bag'
+bag_dwa_filename = 'recorded_data_DWA_9.bag'
 
 # ROS topics for paths
-topic_nmpc = '/robot_path'
+topic_nmpc = '/robot_path_DWA'
 topic_dwa = '/robot_path_DWA'
 
 # Angle for cube placement along the dashed circle (in degrees)
 cube_angle_on_circle = 90  # Set the angle where you want to place the cube
 cube_size = 0.2  # Size of the cube (0.2 x 0.2)
+
+# Drawing the environment (walls, cylinders, rectangles)
+fig, ax = plt.subplots()
+
+# Font sizes for axis labels and ticks
+axis_label_fontsize = 25
+tick_label_fontsize = 25
+
 # ---------------------------------------------------------------------------
 
 def draw_rotated_rectangle(x, y, width, height, angle, ax):
@@ -47,8 +55,6 @@ def calculate_position_on_circle(center_x, center_y, radius, angle_deg):
     y = center_y + radius * np.sin(angle_rad)
     return x, y
 
-# Drawing the environment (walls, cylinders, rectangles)
-fig, ax = plt.subplots()
 
 # Drawing walls (rectangles) as described in the SDF file
 walls = [
@@ -114,8 +120,8 @@ draw_rotated_rectangle(cube_x, cube_y, cube_size, cube_size, 0, ax)  # Cube size
 # Loading paths from ROSBAGs
 amr_control_path = roslib.packages.get_pkg_dir('amr_control')
 
-bag_nmpc_path = os.path.join(amr_control_path, f'data/{bag_nmpc_filename}')
-bag_dwa_path = os.path.join(amr_control_path, f'data/{bag_dwa_filename}')
+bag_nmpc_path = os.path.join(amr_control_path, f'data/rosbags/{bag_nmpc_filename}')
+bag_dwa_path = os.path.join(amr_control_path, f'data/rosbags/{bag_dwa_filename}')
 
 bag_nmpc = rosbag.Bag(bag_nmpc_path)
 bag_dwa = rosbag.Bag(bag_dwa_path)
@@ -140,11 +146,16 @@ ax.plot(dwa_path_x, dwa_path_y, label='DWA Path', color='red', linestyle='--', l
 
 # Grid and labels
 ax.grid(True, which='both', linestyle='--', linewidth=0.5)
-plt.xlabel('X [m]')
-plt.ylabel('Y [m]')
-plt.title('nMPC and DWA Paths with Black Box Obstacles and Dashed Circle')
+plt.xlabel('X [m]', fontsize=axis_label_fontsize)
+plt.ylabel('Y [m]', fontsize=axis_label_fontsize)
+plt.title('nMPC and DWA Paths with dynamic Obstacle Avoidance', fontsize=axis_label_fontsize+20)
+
+# Set tick labels font size
+ax.tick_params(axis='both', which='major', labelsize=tick_label_fontsize)
 
 # Axis scaling and plot display
 plt.axis('equal')
+# plt.xlim(4.5, 7)
+# plt.ylim(-1, 0.5)
 plt.legend()
 plt.show()
