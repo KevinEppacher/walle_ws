@@ -1,4 +1,5 @@
 \documentclass[conference]{IEEEtran}
+
 \IEEEoverridecommandlockouts
 % The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
 \usepackage{fancyhdr}
@@ -14,6 +15,8 @@
 \usepackage{booktabs}
 \usepackage{caption}
 \usepackage[numbers,sort&compress]{natbib}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
 
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -71,6 +74,24 @@ However, it is important to note that while the global path provides an initial 
 
 % Motivation for creating paper contribution (sehr grobe Übersicht über sota)
 
+\cite{ASAP}
+
+\ref{fig:DWA_TEB_MPC_ASAP_path}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=1\columnwidth]{images/DWA_TEB_MPC_ASAP_path.png}
+    \caption{Blockdiagram of nMPC for future Implementation }
+    \label{fig:DWA_TEB_MPC_ASAP_path}
+\end{figure}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=1\columnwidth]{images/DWA_TEB_MPC_ASAP_stats.png}
+    \caption{Blockdiagram of nMPC for future Implementation }
+    \label{fig:DWA_TEB_MPC_ASAP_stats}
+\end{figure}
+
 The Dynamic Window Approach (DWA) efficiently computes safe velocities by evaluating a limited set of possible trajectories. However, it lacks long-term trajectory optimization and struggles with dynamic obstacles due to its short prediction horizon. In contrast, nMPC optimizes over a longer horizon, allowing for more accurate predictions and better handling of dynamic environments.
 
 The Timed Elastic Band (TEB) planner adjusts global paths to account for dynamic obstacles and kinodynamic constraints but can suffer from high computational demands in dense or highly dynamic environments. nMPC provides a more computationally efficient solution by directly incorporating system dynamics and constraints into the optimization process, improving real-time performance in dynamic environment.
@@ -81,6 +102,10 @@ Move Base Flex (MBF) offers flexibility by integrating various local planners, s
 Current local planners, such as the widely used Dynamic Window Approach (DWA) in the ROS Navigation stack, are effective for static and slow-moving obstacles but fail in dynamic environments with fast-moving obstacles. These planners lack the ability to predict and react effectively to rapidly changing environments, leading to suboptimal performance in real-time obstacle avoidance.
 
 % Paper contribution
+This work contributes to the state-of-the-art development, of a nonlinear Model Predictive Controller for a mobile robot with integrated dynamic obstacle avoidance. 
+
+The main objective is to design a local planner that effectively addresses the challenges of dynamic obstacle avoidance, offering improved performance in real-time navigation within dynamic environments.
+
 This work addresses these challenges by developing a nonlinear Model Predictive Controller (nMPC) for differential drive mobile robots, specifically designed for dynamic obstacle avoidance. The primary contribution is the integration of nMPC to improve real-time navigation performance in dynamic environments. Unlike conventional approaches such as DWA, the proposed nMPC effectively handles nonlinear dynamics and dynamic obstacles, offering superior prediction accuracy and responsiveness.
 
 This paper contributes to the field by rigorously evaluating the nMPC against both DWA and recent advancements in local planning algorithms from the past five years. The results demonstrate that the nMPC provides enhanced trajectory optimization and obstacle avoidance capabilities, filling a crucial gap in mobile robot control by addressing scenarios that existing methods have not sufficiently solved.
@@ -91,8 +116,6 @@ The rest of the paper is organized as follows: Section II discusses related work
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{State-of-the-Art}
-
-
 
 In this section, we provide an overview of several state-of-the-art local planners, including the Dynamic Window Approach (DWA), Timed Elastic Band (TEB), Model Predictive Control (MPC), Move Base Flex (MBF), Agile and Safe Pursuit (ASAP), and Reinforcement Learning (RL)-based planners. We explain how these planners function and highlight their key limitations, especially when operating in dynamic environments. Additionally, we discuss how nonlinear Model Predictive Control (nMPC) addresses these limitations and provides improved performance.
 
@@ -192,13 +215,10 @@ RL-based         & Good               & Limited            & Variable           
 \end{tabular}
 \end{table}
 
-\bibliographystyle{IEEEtran}
-\bibliography{references}
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Methods}
 
+\subsection{Reference Trajectory}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

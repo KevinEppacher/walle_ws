@@ -9,6 +9,10 @@
     <arg name="init_pose_yaw" default="0" />
 
     <!-- <arg name="init_pose_x" default="4.5" />
+    <arg name="init_pose_y" default="1.0" />
+    <arg name="init_pose_yaw" default="-1.57" /> -->
+<!-- 
+    <arg name="init_pose_x" default="4.5" />
     <arg name="init_pose_y" default="-1.0" />
     <arg name="init_pose_yaw" default="1.57" /> -->
 

@@ -223,15 +223,16 @@ class TrajectoryPlanner:
         end_time = rospy.Time.now()  # Endzeit mit ROS-Zeitstempel
         loop_time = (end_time - start_time).to_sec()  # Taktzeit berechnen in Sekunden
 
-        if loop_time > 0.1:
-            rospy.logwarn(f"Cycle Time: {loop_time:.4f} Seconds")
-        else:
-            # Ausgabe der Taktzeit und der durchschnittlichen Taktzeit
-            rospy.loginfo(f"Cycle Time: {loop_time:.4f} SekSecondsunden")
+        # if loop_time > 0.1:
+        #     rospy.logwarn(f"Cycle Time: {loop_time:.4f} Seconds")
+        # else:
+        #     # Ausgabe der Taktzeit und der durchschnittlichen Taktzeit
+        #     rospy.loginfo(f"Cycle Time: {loop_time:.4f} SekSecondsunden")
             
     def compute_control_input(self):
         if np.linalg.norm(self.current_state - self.target_state, 2) > self.goal_tolerance:
             self.viz.create_marker_array(self.obstacles)
+            print("Obstacles: ", self.obstacles)
             self.u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, self.T, self.obstacles)
             
             # obs = [

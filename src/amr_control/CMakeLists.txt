@@ -137,3 +137,13 @@ catkin_install_python(PROGRAMS
   scripts/plot_paths.py 
 DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+############################################################
+# CMakelist for costmap_obstacle_detection node
+############################################################
+
+# Install Python scripts
+catkin_install_python(PROGRAMS
+  src/amr_control/costmap_obstacle_detection.py 
+DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)

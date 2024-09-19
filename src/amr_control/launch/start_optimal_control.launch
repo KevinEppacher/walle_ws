@@ -6,9 +6,11 @@
     <!-- Starte die amr_control Nodes -->
     <node name="optimal_control" pkg="amr_control" type="optimal_control.py" output="screen" />
     
-    <node name="obstacle_detection" pkg="amr_control" type="obstacle_detection.py" />
+    <!-- <node name="obstacle_detection" pkg="amr_control" type="obstacle_detection.py" /> -->
+
+    <node name="costmap_obstacle_detection" pkg="amr_control" type="costmap_obstacle_detection.py" />
     
-    <node name="move_base_execution" pkg="amr_control" type="move_base_execution.py" output="screen" />
+    <!-- <node name="move_base_execution" pkg="amr_control" type="move_base_execution.py" output="screen" /> -->
 
     <node name="path_recorder" pkg="amr_control" type="path_recorder.py" output="screen" />
 
