@@ -66,19 +66,19 @@ def interpolate_trajectory(ref_traj, total_prediction_distance, N, robot_max_spe
 # Beispiel für eine Trajektorie mit Wegpunkten (x, y, yaw)
 ref_traj = np.array([
     [0, 0, 0],
-    [1, 2, 0.5],
-    [2, 3, 1.0],
-    [4, 5, 1.5],
-    [5, 6, 2.0],
-    [6, 7, 2.5],
-    [7, 7, 2.0],
-    [8, 8, 2.0],
-    [9, 9, 2.0],
+    # [1, 2, 0.5],
+    # [2, 3, 1.0],
+    # [4, 5, 1.5],
+    [5, 5, np.pi / 2],
+    # [6, 7, 2.5],
+    # [7, 7, 2.0],
+    # [8, 8, 2.0],
+    [7, 10, np.pi],
 ])
 
 # Parameter für die Interpolation
 total_prediction_distance = 15  # Gesamtdistanz für die MPC-Prediction
-N = 9  # Anzahl der Prediction-Punkte im MPC
+N = 10  # Anzahl der Prediction-Punkte im MPC
 current_speed = 0.5  # Aktuelle Geschwindigkeit des Roboters
 robot_max_speed = 1.0  # Maximale Geschwindigkeit des Roboters
 
