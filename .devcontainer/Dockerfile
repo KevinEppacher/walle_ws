@@ -35,6 +35,8 @@ RUN sudo apt-get install -y ros-noetic-dwa-local-planner
 
 RUN sudo apt-get install -y ros-noetic-gmapping
 
+RUN sudo apt-get install -y ros-noetic-teb-local-planner
+
 RUN sudo apt-get install -y ros-noetic-turtlebot3* ros-noetic-turtlebot3 \
     && echo "export TURTLEBOT3_MODEL=waffle" >> ~/.bashrc
 

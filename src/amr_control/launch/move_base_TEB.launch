@@ -1,0 +1,37 @@
+<?xml version="1.0" ?>
+<launch>
+  <!-- Launches move_base with the TEB local planner -->
+
+  <!-- Arguments -->
+  <arg name="model" default="burger" doc="Model type [burger, waffle, waffle_pi]" />
+  <arg name="cmd_vel_topic" default="/cmd_vel" />
+  <arg name="odom_topic" default="odom" />
+  <arg name="map_topic" default="/map" />
+
+  <!-- Launch move_base node -->
+  <node pkg="move_base" type="move_base" name="move_base" output="screen">
+    
+    <!-- Use TEB as the local planner -->
+    <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS" />
+    
+    <!-- Load common costmap parameters for global and local costmaps -->
+    <rosparam file="$(find amr_control)/param/costmap_common_params_$(arg model).yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find amr_control)/param/costmap_common_params_$(arg model).yaml" command="load" ns="local_costmap" />
+    
+    <!-- Load local and global costmap-specific parameters -->
+    <rosparam file="$(find amr_control)/param/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find amr_control)/param/global_costmap_params.yaml" command="load" />
+
+    <!-- Load move_base parameters -->
+    <rosparam file="$(find amr_control)/param/move_base_params.yaml" command="load" />
+
+    <!-- Load the TEB planner-specific parameters -->
+    <rosparam file="$(find amr_control)/param/teb_local_planner_params.yaml" command="load"/>
+
+    <!-- Remap topics if necessary -->
+    <remap from="cmd_vel" to="$(arg cmd_vel_topic)" />
+    <remap from="odom" to="$(arg odom_topic)" />
+    <remap from="map" to="$(arg map_topic)" />
+    
+  </node>
+</launch>
