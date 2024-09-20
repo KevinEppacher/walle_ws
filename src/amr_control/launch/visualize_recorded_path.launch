@@ -1,11 +1,16 @@
 <launch>
     <!-- Play ROS bag file with specific topic and remap the topic -->
-    <node name="rosbag_play_nMPC" pkg="rosbag" type="play" args="$(find amr_control)/data/rosbags/recorded_data_nMPC_14.bag --topics /robot_path_DWA" output="screen">
+    <node name="rosbag_play_nMPC" pkg="rosbag" type="play" args="$(find amr_control)/data/rosbags/recorded_data_nMPC_15.bag --topics /robot_path_DWA" output="screen">
         <remap from="/robot_path_DWA" to="/robot_path_nMPC"/>
     </node>
 
-    <node name="rosbag_play_DWA" pkg="rosbag" type="play" args="$(find amr_control)/data/rosbags/recorded_data_DWA_8.bag --topics /robot_path_DWA" output="screen"/>
+    <node name="rosbag_play_DWA" pkg="rosbag" type="play" args="$(find amr_control)/data/rosbags/recorded_data_DWA_11.bag --topics /robot_path_DWA" output="screen"/>
+
+    <node name="rosbag_play_TEB" pkg="rosbag" type="play" args="$(find amr_control)/data/rosbags/recorded_data_TEB_2.bag --topics /robot_path_DWA" output="screen">
+        <remap from="/robot_path_DWA" to="/robot_path_TEB"/>
+    </node>
 
     <!-- Set the simulated time to true if working with bag files -->
     <param name="/use_sim_time" value="true"/>
+    
 </launch>
