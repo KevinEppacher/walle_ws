@@ -10,9 +10,14 @@ import roslib
 
 # ------------------------- CONFIGURABLE PARAMETERS -------------------------
 # ROSBAG file paths
-bag_nmpc_filename = 'recorded_data_nMPC_15.bag'
-bag_dwa_filename = 'recorded_data_DWA_10.bag'
-bag_teb_filename = 'recorded_data_TEB_2.bag'
+# bag_nmpc_filename = 'recorded_data_nMPC_15.bag'
+# bag_dwa_filename = 'recorded_data_DWA_10.bag'
+# bag_teb_filename = 'recorded_data_TEB_2.bag'
+
+bag_nmpc_filename = 'recorded_data_nMPC_17.bag'
+bag_dwa_filename = 'recorded_data_DWA_12.bag'
+bag_teb_filename = 'recorded_data_TEB_6.bag'
+
 
 # ROS topics for cmd_vel (used by different planners)
 cmd_vel_topic = '/cmd_vel'
@@ -27,8 +32,8 @@ cube_angle_on_circle_2 = 190  # Set the angle where you want to place the cube
 cube_size = 0.2  # Size of the cube (0.2 x 0.2)
 
 # Font sizes for axis labels and ticks
-axis_label_fontsize = 25
-tick_label_fontsize = 25
+axis_label_fontsize = 50
+tick_label_fontsize = 50
 
 # ------------------------- FUNCTIONS -------------------------
 def calculate_planner_frequency(bag_file_path, cmd_vel_topic):
@@ -53,6 +58,27 @@ def calculate_planner_frequency(bag_file_path, cmd_vel_topic):
         return cmd_vel_count, total_time, frequency
     else:
         return 0, 0, 0  # If no messages were found
+    
+def calculate_average_computation_time(bag_file_path, cmd_vel_topic):
+    """Calculate the average computation time between cmd_vel messages for a planner."""
+    bag = rosbag.Bag(bag_file_path)
+    
+    timestamps = []  # List to store timestamps of each cmd_vel message
+
+    # Iterate through the cmd_vel messages and record the timestamps
+    for topic, msg, t in bag.read_messages(topics=[cmd_vel_topic]):
+        timestamps.append(t.to_sec())  # Store time in seconds
+
+    bag.close()
+
+    # Calculate time differences between consecutive timestamps
+    if len(timestamps) > 1:
+        time_diffs = np.diff(timestamps)  # Differences between consecutive timestamps
+        average_computation_time = np.mean(time_diffs)  # Average time difference (computation time)
+    else:
+        average_computation_time = 0  # If less than 2 messages, return 0
+    
+    return average_computation_time
 
 def process_path_data(path_msg):
     """Process path data from a ROS message."""
@@ -96,6 +122,7 @@ def calculate_position_on_circle(center_x, center_y, radius, angle_deg):
     return x, y
 
 # ------------------------- MAIN PROGRAM -------------------------
+# ------------------------- MAIN PROGRAM -------------------------
 def main():
     # Path to the ROSBAG directory
     amr_control_path = roslib.packages.get_pkg_dir('amr_control')
@@ -109,6 +136,12 @@ def main():
     nmpc_cmd_vel_count, nmpc_total_time, nmpc_frequency = calculate_planner_frequency(bag_nmpc_path, cmd_vel_topic)
     dwa_cmd_vel_count, dwa_total_time, dwa_frequency = calculate_planner_frequency(bag_dwa_path, cmd_vel_topic)
     teb_cmd_vel_count, teb_total_time, teb_frequency = calculate_planner_frequency(bag_teb_path, cmd_vel_topic)
+    
+    # Calculate average computation times
+    nmpc_avg_computation_time = calculate_average_computation_time(bag_nmpc_path, cmd_vel_topic)
+    dwa_avg_computation_time = calculate_average_computation_time(bag_dwa_path, cmd_vel_topic)
+    teb_avg_computation_time = calculate_average_computation_time(bag_teb_path, cmd_vel_topic)
+
 
     # Print results to the terminal
     print(f"nMPC Planner: {nmpc_cmd_vel_count} messages, {nmpc_total_time:.2f} seconds, {nmpc_frequency:.2f} Hz")
@@ -177,20 +210,19 @@ def main():
     ax1.add_patch(dashed_circle)
 
     # Draw a black-filled cube along the dashed circle at a specified angle
-    cube_x_1, cube_y_1 = calculate_position_on_circle(3, 0, 0.5, cube_angle_on_circle_1)  # Position along the circle
-    # draw_rotated_rectangle(cube_x_1, cube_y_1, cube_size, cube_size, 0, ax1)  # Cube size is 0.2 x 0.2
+    cube_x_1, cube_y_1 = calculate_position_on_circle(3, 0, 0.5, cube_angle_on_circle_1)
+    draw_rotated_rectangle(cube_x_1, cube_y_1, cube_size, cube_size, 0, ax1)
 
     # Draw a black-filled cube along the dashed circle at a specified angle
-    cube_x_2, cube_y_2 = calculate_position_on_circle(3, 0, 0.5, cube_angle_on_circle_2)  # Position along the circle
-    # draw_rotated_rectangle(cube_x_2, cube_y_2, cube_size, cube_size, 0, ax1)  # Cube size is 0.2 x 0.2
-
+    cube_x_2, cube_y_2 = calculate_position_on_circle(3, 0, 0.5, cube_angle_on_circle_2)
+    draw_rotated_rectangle(cube_x_2, cube_y_2, cube_size, cube_size, 0, ax1)
 
     # Load the global plan from /move_base/NavfnROS/plan
     global_path_x, global_path_y = [], []
-    bag_global = rosbag.Bag(bag_nmpc_path)  # Assuming the global plan is in the same bag file
+    bag_global = rosbag.Bag(bag_nmpc_path)
     for topic, msg, t in bag_global.read_messages(topics=[global_plan_topic]):
         global_path_x, global_path_y = process_path_data(msg)
-        break  # Use only the first computed global path
+        break
     bag_global.close()
 
     # Plot global plan
@@ -224,11 +256,13 @@ def main():
     ax1.plot(dwa_path_x, dwa_path_y, label='DWA Path', color='red', linestyle='--', linewidth=2)
     ax1.plot(teb_path_x, teb_path_y, label='TEB Path', color='blue', linestyle='-.', linewidth=2)
 
-    ax1.grid(True, which='both', linestyle='--', linewidth=0.5)
-    ax1.set_xlabel('X [m]', fontsize=12)
-    ax1.set_ylabel('Y [m]', fontsize=12)
-    ax1.set_title('Paths for nMPC, DWA, and TEB with Global Plan', fontsize=14)
-    ax1.legend()
+    # Adjust font sizes using global parameters
+    ax1.set_xlabel('X [m]', fontsize=axis_label_fontsize)
+    ax1.set_ylabel('Y [m]', fontsize=axis_label_fontsize)
+    ax1.set_title('Paths for nMPC, DWA, and TEB with Global Plan', fontsize=axis_label_fontsize)
+    ax1.tick_params(axis='both', which='major', labelsize=tick_label_fontsize)
+
+    ax1.legend(loc='upper right', fontsize=axis_label_fontsize * 2 / 3)  # Adjust legend position and font size
 
     # Show the plot for the paths
     plt.axis('equal')
@@ -251,25 +285,40 @@ def main():
     cte_values = [nmpc_cte, dwa_cte, teb_cte]
 
     ax2.bar(planners, cte_values, color=['green', 'red', 'blue'])
-    ax2.set_xlabel('Planners', fontsize=12)
-    ax2.set_ylabel('Cross-Tracking Error (meters)', fontsize=12)
-    ax2.set_title('Cross-Tracking Error Comparison', fontsize=14)
+
+    # Adjust font sizes for the bar plot
+    ax2.set_xlabel('Planners', fontsize=axis_label_fontsize)
+    ax2.set_ylabel('Cross-Tracking Error [m]', fontsize=axis_label_fontsize)
+    ax2.set_title('Cross-Tracking Error Comparison', fontsize=axis_label_fontsize)
+    ax2.tick_params(axis='both', which='major', labelsize=tick_label_fontsize)
 
     plt.grid(True)
     plt.show()
-
-    # ------------------------- PLOT COMPUTATION AND ARRIVAL TIMES -------------------------
+    
+    # ------------------------- Computation Time Plot -------------------------
     fig, ax3 = plt.subplots()
-    planners = ['nMPC', 'DWA', 'TEB']
-    computation_times = [nmpc_total_time, dwa_total_time, teb_total_time]
+    computation_times = [nmpc_avg_computation_time * 1000, dwa_avg_computation_time * 1000, teb_avg_computation_time * 1000]
 
     ax3.bar(planners, computation_times, color=['green', 'red', 'blue'])
-    ax3.set_xlabel('Planners', fontsize=12)
-    ax3.set_ylabel('Computation Time (seconds)', fontsize=12)
-    ax3.set_title('Computation Time Comparison', fontsize=14)
-
+    ax3.set_xlabel('Planners', fontsize=axis_label_fontsize)
+    ax3.set_ylabel('Computation Time [ms]', fontsize=axis_label_fontsize)
+    ax3.set_title('Computation Time Comparison', fontsize=axis_label_fontsize)
+    ax3.tick_params(axis='both', which='major', labelsize=tick_label_fontsize)
     plt.grid(True)
     plt.show()
+
+    # ------------------------- PLOT ARRIVAL TIMES -------------------------
+    fig, ax4 = plt.subplots()
+    arrival_times = [nmpc_total_time, dwa_total_time, teb_total_time]
+
+    ax4.bar(planners, arrival_times, color=['green', 'red', 'blue'])
+    ax4.set_xlabel('Planners', fontsize=axis_label_fontsize)
+    ax4.set_ylabel('Total Duration [s]', fontsize=axis_label_fontsize)
+    ax4.set_title('Arrival Time Comparison', fontsize=axis_label_fontsize)
+    ax4.tick_params(axis='both', which='major', labelsize=tick_label_fontsize)
+    plt.grid(True)
+    plt.show()
+
 
 if __name__ == '__main__':
     main()
