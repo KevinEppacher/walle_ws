@@ -8,7 +8,7 @@
 
     <!-- <arg name="bag_path" default="$(find amr_control)/data/rosbags/recorded_data_nMPC_15.bag" /> -->
 
-    <arg name="bag_path" default="$(find amr_control)/data/rosbags/recorded_data_DWA_10.bag" />
+    <arg name="bag_path" default="$(find amr_control)/data/rosbags/recorded_data_DWA_11.bag" />
 
     <!-- <arg name="bag_path" default="$(find amr_control)/data/rosbags/recorded_data_DWA_4.bag" /> -->
 
