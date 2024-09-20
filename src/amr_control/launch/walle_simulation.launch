@@ -90,9 +90,9 @@
     <!-- <include file="$(find amr_control)/launch/move_base_nMPC.launch" /> -->
 
     <!-- Include move_base -->
-    <include file="$(find amr_control)/launch/move_base_DWA.launch" />
+    <!-- <include file="$(find amr_control)/launch/move_base_DWA.launch" /> -->
 
-    <!-- <include file="$(find amr_control)/launch/move_base_TEB.launch" /> -->
+    <include file="$(find amr_control)/launch/move_base_TEB.launch" />
 
 
     <!-- Cube in Gazebo laden -->
