@@ -464,7 +464,7 @@ Visualization Manager:
       Marker Topic: /move_base/TebLocalPlannerROS/teb_markers
       Name: Marker
       Namespaces:
-        {}
+        PointObstacles: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -495,7 +495,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 6.919130802154541
+      Distance: 3.429232120513916
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -503,8 +503,8 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 3.3557355403900146
-        Y: -1.3471002578735352
+        X: 5.412375450134277
+        Y: -0.988425612449646
         Z: 1.1920928955078125e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806

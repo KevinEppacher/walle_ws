@@ -16,6 +16,19 @@ bag_teb_filename = 'recorded_data_TEB_2.bag'
 
 # ROS topics for cmd_vel (used by different planners)
 cmd_vel_topic = '/cmd_vel'
+global_plan_topic = '/move_base/NavfnROS/plan'
+
+# Angle for cube placement along the dashed circle (in degrees)
+cube_angle_on_circle_1 = 45  # Set the angle where you want to place the cube
+cube_size = 0.2  # Size of the cube (0.2 x 0.2)
+
+# Angle for cube placement along the dashed circle (in degrees)
+cube_angle_on_circle_2 = 190  # Set the angle where you want to place the cube
+cube_size = 0.2  # Size of the cube (0.2 x 0.2)
+
+# Font sizes for axis labels and ticks
+axis_label_fontsize = 25
+tick_label_fontsize = 25
 
 # ------------------------- FUNCTIONS -------------------------
 def calculate_planner_frequency(bag_file_path, cmd_vel_topic):
@@ -41,8 +54,8 @@ def calculate_planner_frequency(bag_file_path, cmd_vel_topic):
     else:
         return 0, 0, 0  # If no messages were found
 
-# Process path data from ROSBAG
 def process_path_data(path_msg):
+    """Process path data from a ROS message."""
     path_x = []
     path_y = []
     for pose in path_msg.poses:
@@ -50,7 +63,14 @@ def process_path_data(path_msg):
         path_y.append(pose.pose.position.y)
     return path_x, path_y
 
-# Function to draw rotated rectangles (used for cubes and other shapes)
+def calculate_cross_tracking_error(global_path, local_path):
+    """Calculate the cross-tracking error between the global path and the local path."""
+    errors = []
+    for lx, ly in zip(local_path[0], local_path[1]):
+        min_distance = min([np.sqrt((lx - gx)**2 + (ly - gy)**2) for gx, gy in zip(global_path[0], global_path[1])])
+        errors.append(min_distance)
+    return errors
+
 def draw_rotated_rectangle(x, y, width, height, angle, ax):
     """Draw a rotated rectangle."""
     theta = np.radians(angle)
@@ -59,6 +79,21 @@ def draw_rotated_rectangle(x, y, width, height, angle, ax):
     t_rot = Affine2D().rotate(theta).translate(x, y) + t
     rect.set_transform(t_rot)
     ax.add_patch(rect)
+    
+def calculate_cross_tracking_error(global_path, local_path):
+    """Calculate the cross-tracking error between the global path and the local path."""
+    errors = []
+    for lx, ly in zip(local_path[0], local_path[1]):
+        min_distance = min([np.sqrt((lx - gx)**2 + (ly - gy)**2) for gx, gy in zip(global_path[0], global_path[1])])
+        errors.append(min_distance)
+    return np.mean(errors) if errors else 0  # Return the mean CTE
+
+# Function to calculate the position on the circle based on the angle
+def calculate_position_on_circle(center_x, center_y, radius, angle_deg):
+    angle_rad = np.radians(angle_deg)
+    x = center_x + radius * np.cos(angle_rad)
+    y = center_y + radius * np.sin(angle_rad)
+    return x, y
 
 # ------------------------- MAIN PROGRAM -------------------------
 def main():
@@ -121,8 +156,46 @@ def main():
     for cylinder in cylinders:
         circ = patches.Circle((cylinder[0], cylinder[1]), cylinder[2], linewidth=1, edgecolor='k', facecolor='k')
         ax1.add_patch(circ)
+        
+    # Drawing rectangles as described in the SDF file
+    rectangles = [
+        (-1.466790, 0.124105, 0.832545, 0.712184, -0.368363 * 180 / np.pi),
+        (0.704279, 1.426650, 0.832545, 0.712184, 0.381073 * 180 / np.pi),
+        (1.463960, -0.547771, 0.832545, 0.712184, -0.410182 * 180 / np.pi),
+        (3.453640, 1.03602, 0.832545, 0.712184, 0)
+    ]
 
-    # Drawing the paths from the ROSBAG
+    # Drawing rectangles with rotation
+    for rect in rectangles:
+        draw_rotated_rectangle(rect[0], rect[1], rect[2], rect[3], rect[4], ax1)
+
+    # Drawing the new door box (as described in cube.urdf)
+    draw_rotated_rectangle(5.0, -0.5, 0.01, 0.5, 0, ax1)
+    
+    # Drawing the dashed circle with diameter = 1 (radius = 0.5)
+    dashed_circle = patches.Circle((3, 0), 0.5, linewidth=1, edgecolor='k', facecolor='none', linestyle='--')
+    ax1.add_patch(dashed_circle)
+
+    # Draw a black-filled cube along the dashed circle at a specified angle
+    cube_x_1, cube_y_1 = calculate_position_on_circle(3, 0, 0.5, cube_angle_on_circle_1)  # Position along the circle
+    # draw_rotated_rectangle(cube_x_1, cube_y_1, cube_size, cube_size, 0, ax1)  # Cube size is 0.2 x 0.2
+
+    # Draw a black-filled cube along the dashed circle at a specified angle
+    cube_x_2, cube_y_2 = calculate_position_on_circle(3, 0, 0.5, cube_angle_on_circle_2)  # Position along the circle
+    # draw_rotated_rectangle(cube_x_2, cube_y_2, cube_size, cube_size, 0, ax1)  # Cube size is 0.2 x 0.2
+
+
+    # Load the global plan from /move_base/NavfnROS/plan
+    global_path_x, global_path_y = [], []
+    bag_global = rosbag.Bag(bag_nmpc_path)  # Assuming the global plan is in the same bag file
+    for topic, msg, t in bag_global.read_messages(topics=[global_plan_topic]):
+        global_path_x, global_path_y = process_path_data(msg)
+        break  # Use only the first computed global path
+    bag_global.close()
+
+    # Plot global plan
+    ax1.plot(global_path_x, global_path_y, label='Global Plan', color='black', linestyle=':', linewidth=2)
+
     # Extracting the paths for nMPC, DWA, and TEB
     nmpc_path_x, nmpc_path_y = [], []
     dwa_path_x, dwa_path_y = [], []
@@ -154,7 +227,7 @@ def main():
     ax1.grid(True, which='both', linestyle='--', linewidth=0.5)
     ax1.set_xlabel('X [m]', fontsize=12)
     ax1.set_ylabel('Y [m]', fontsize=12)
-    ax1.set_title('Paths for nMPC, DWA, and TEB with Objects', fontsize=14)
+    ax1.set_title('Paths for nMPC, DWA, and TEB with Global Plan', fontsize=14)
     ax1.legend()
 
     # Show the plot for the paths
@@ -162,30 +235,39 @@ def main():
     plt.grid(True)
     plt.show()
 
-    # 2. Plot for Computation Time
+    # ------------------------- CROSS-TRACKING ERROR -------------------------
+    # 3. Calculate the cross-tracking error (CTE) for each planner
+    nmpc_cte = calculate_cross_tracking_error((global_path_x, global_path_y), (nmpc_path_x, nmpc_path_y))
+    dwa_cte = calculate_cross_tracking_error((global_path_x, global_path_y), (dwa_path_x, dwa_path_y))
+    teb_cte = calculate_cross_tracking_error((global_path_x, global_path_y), (teb_path_x, teb_path_y))
+
+    print(f"nMPC Cross-Tracking Error: {nmpc_cte:.2f} meters")
+    print(f"DWA Cross-Tracking Error: {dwa_cte:.2f} meters")
+    print(f"TEB Cross-Tracking Error: {teb_cte:.2f} meters")
+
+    # 4. Plot the cross-tracking errors in a bar plot
     fig, ax2 = plt.subplots()
     planners = ['nMPC', 'DWA', 'TEB']
-    computation_times = [nmpc_total_time, dwa_total_time, teb_total_time]
-    
-    ax2.bar(planners, computation_times, color=['green', 'red', 'blue'])
-    ax2.set_xlabel('Planners', fontsize=12)
-    ax2.set_ylabel('Computation Time (seconds)', fontsize=12)
-    ax2.set_title('Computation Time Comparison', fontsize=14)
+    cte_values = [nmpc_cte, dwa_cte, teb_cte]
 
-    # Show the plot for computation time
+    ax2.bar(planners, cte_values, color=['green', 'red', 'blue'])
+    ax2.set_xlabel('Planners', fontsize=12)
+    ax2.set_ylabel('Cross-Tracking Error (meters)', fontsize=12)
+    ax2.set_title('Cross-Tracking Error Comparison', fontsize=14)
+
     plt.grid(True)
     plt.show()
 
-    # 3. Plot for Arrival Time
+    # ------------------------- PLOT COMPUTATION AND ARRIVAL TIMES -------------------------
     fig, ax3 = plt.subplots()
-    arrival_times = [nmpc_total_time, dwa_total_time, teb_total_time]  # Here, assuming the same as computation time
-    
-    ax3.bar(planners, arrival_times, color=['green', 'red', 'blue'])
-    ax3.set_xlabel('Planners', fontsize=12)
-    ax3.set_ylabel('Arrival Time (seconds)', fontsize=12)
-    ax3.set_title('Arrival Time Comparison', fontsize=14)
+    planners = ['nMPC', 'DWA', 'TEB']
+    computation_times = [nmpc_total_time, dwa_total_time, teb_total_time]
 
-    # Show the plot for arrival time
+    ax3.bar(planners, computation_times, color=['green', 'red', 'blue'])
+    ax3.set_xlabel('Planners', fontsize=12)
+    ax3.set_ylabel('Computation Time (seconds)', fontsize=12)
+    ax3.set_title('Computation Time Comparison', fontsize=14)
+
     plt.grid(True)
     plt.show()
 
