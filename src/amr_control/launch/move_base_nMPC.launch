@@ -18,6 +18,15 @@
   <!-- move_forward_only: Specifies whether the robot should only move forward. Default value is "false". -->
   <arg name="move_forward_only" default="false"/>
 
+  <!-- Lade das YAML-File mit Parametern -->
+  <rosparam file="$(find amr_control)/param/optimal_control_params.yaml" />
+
+  <!-- Starte die amr_control Nodes -->
+  <node name="optimal_control" pkg="amr_control" type="optimal_control.py" output="screen" />
+  
+  <node name="obstacle_detection" pkg="amr_control" type="obstacle_detection.py" />
+
+
   <!-- move_base -->
   <!-- The move_base node from the move_base package. It is responsible for planning and executing robot's movements. -->
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
