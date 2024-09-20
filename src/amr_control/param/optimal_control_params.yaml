@@ -20,7 +20,7 @@ trajectory_planner:
 
 obstacle_detection:
   safety_corner_diam: 0.15  # Sicherheitsradius um die Ecken
-  quality_level: 0.5  # Shi-Tomasi Quality Level
+  quality_level: 0.01  # Shi-Tomasi Quality Level
   max_corners: 20  # Maximal erkennbare Ecken
   min_distance: 10  # Mindestabstand zwischen den erkannten Ecken
   loop_rate: 1000  # Erkennungsrate in Hz
