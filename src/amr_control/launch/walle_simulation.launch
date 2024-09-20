@@ -90,9 +90,9 @@
     <!-- <include file="$(find amr_control)/launch/move_base_nMPC.launch" /> -->
 
     <!-- Include move_base -->
-    <!-- <include file="$(find amr_control)/launch/move_base_DWA.launch" /> -->
+    <include file="$(find amr_control)/launch/move_base_DWA.launch" />
 
-    <include file="$(find amr_control)/launch/move_base_TEB.launch" />
+    <!-- <include file="$(find amr_control)/launch/move_base_TEB.launch" /> -->
 
 
     <!-- Cube in Gazebo laden -->
@@ -109,6 +109,6 @@
     <param name="door_description" command="cat $(find amr_control)/urdf/door.urdf"/>
     
     <node name="spawn_door" pkg="gazebo_ros" type="spawn_model" output="screen"
-    args="-param door_description -urdf -model door -x 5.0 -y -0.5 -z 0.15"/>
+    args="-param door_description -urdf -model door -x 5.0 -y -0.4 -z 0.15"/>
 
 </launch>
