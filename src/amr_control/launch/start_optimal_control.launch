@@ -6,9 +6,9 @@
 
     <node name="move_urdf_box" pkg="amr_control" type="move_urdf_box.py" output="screen" />
 
-    <arg name="bag_path" default="$(find amr_control)/data/rosbags/recorded_data_nMPC_15.bag" />
+    <!-- <arg name="bag_path" default="$(find amr_control)/data/rosbags/recorded_data_nMPC_15.bag" /> -->
 
-    <!-- <arg name="bag_path" default="$(find amr_control)/data/rosbags/recorded_data_DWA_4.bag" /> -->
+    <arg name="bag_path" default="$(find amr_control)/data/rosbags/recorded_data_DWA_10.bag" />
 
     <!-- <arg name="bag_path" default="$(find amr_control)/data/rosbags/recorded_data_DWA_4.bag" /> -->
 

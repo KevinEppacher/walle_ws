@@ -16,6 +16,7 @@ class PathRecorder:
         # Publisher für den Path
         self.path_pub_nMPC = rospy.Publisher('/robot_path_nMPC', Path, queue_size=10)
         self.path_pub_DWA = rospy.Publisher('/robot_path_DWA', Path, queue_size=10)
+        self.path_pub_TEB = rospy.Publisher('/robot_path_TEB', Path, queue_size=10)
 
         # Erstelle eine Path-Nachricht
         self.path = Path()
@@ -36,6 +37,7 @@ class PathRecorder:
         # Veröffentliche den Pfad
         self.path_pub_nMPC.publish(self.path)
         self.path_pub_DWA.publish(self.path)
+        self.path_pub_TEB.publish(self.path)
         
     def run(self):
         rospy.spin()

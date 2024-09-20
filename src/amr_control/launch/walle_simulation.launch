@@ -87,10 +87,10 @@
     <rosparam file="$(find amr_control)/param/costmap_common_params_$(arg model).yaml" command="load" ns="global_costmap"/>
     
     <!-- Include move_base -->
-    <include file="$(find amr_control)/launch/move_base_nMPC.launch" />
+    <!-- <include file="$(find amr_control)/launch/move_base_nMPC.launch" /> -->
 
     <!-- Include move_base -->
-    <!-- <include file="$(find amr_control)/launch/move_base_DWA.launch" /> -->
+    <include file="$(find amr_control)/launch/move_base_DWA.launch" />
 
     <!-- <include file="$(find amr_control)/launch/move_base_TEB.launch" /> -->
 
