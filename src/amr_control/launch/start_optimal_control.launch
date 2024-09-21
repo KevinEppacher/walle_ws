@@ -1,16 +1,16 @@
 <launch>
     
-    <node name="move_base_execution" pkg="amr_control" type="move_base_execution.py" output="screen" />
+    <!-- <node name="move_base_execution" pkg="amr_control" type="move_base_execution.py" output="screen" /> -->
 
     <node name="path_recorder" pkg="amr_control" type="path_recorder.py" output="screen" />
 
-    <node name="move_urdf_box" pkg="amr_control" type="move_urdf_box.py" output="screen" />
+    <!-- <node name="move_urdf_box" pkg="amr_control" type="move_urdf_box.py" output="screen" /> -->
 
-    <!-- <arg name="bag_path" default="$(find amr_control)/data/rosbags/recorded_data_nMPC_17.bag" /> -->
+    <arg name="bag_path" default="$(find amr_control)/data/rosbags/recorded_data_nMPC_19.bag" />
 
-    <!-- <arg name="bag_path" default="$(find amr_control)/data/rosbags/recorded_data_DWA_14.bag" /> -->
+    <!-- <arg name="bag_path" default="$(find amr_control)/data/rosbags/recorded_data_DWA_15.bag" /> -->
 
-    <arg name="bag_path" default="$(find amr_control)/data/rosbags/recorded_data_TEB_9.bag" />
+    <!-- <arg name="bag_path" default="$(find amr_control)/data/rosbags/recorded_data_TEB_10.bag" /> -->
 
     <node name="rosbag_record" pkg="rosbag" type="record" output="screen" required="true"
           args="-O $(arg bag_path) /cmd_vel /amcl_pose /odom /clock /scan /predicted_trajectory /refrence_trajectory /robot_path_nMPC /robot_path_DWA /robot_path_TEB /tf /move_base/status /move_base/feedback /move_base_simple/goal /global_costmap/costmap /move_base/NavfnROS/plan" />

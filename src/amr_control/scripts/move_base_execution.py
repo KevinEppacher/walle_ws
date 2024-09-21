@@ -2,6 +2,7 @@
 
 import rospy
 from geometry_msgs.msg import PoseStamped
+from tf.transformations import quaternion_from_euler
 
 def send_goal():
     # Initialisiere den Knoten
@@ -21,20 +22,26 @@ def send_goal():
     goal_msg.header.stamp = rospy.Time.now()
 
     # Setze die Position (x, y, z) und Orientierung (Quaternion) des Ziels
-    goal_msg.pose.position.x = 7.0
-    goal_msg.pose.position.y = 0.0
+    goal_msg.pose.position.x = 1.5
+    goal_msg.pose.position.y = 2.0
     goal_msg.pose.position.z = 0.0
 
-    goal_msg.pose.orientation.x = 0.0
-    goal_msg.pose.orientation.y = 0.0
-    goal_msg.pose.orientation.z = 0.0
-    goal_msg.pose.orientation.w = 1.0
+    yaw = -1-57
+    q = quaternion_from_euler(0.0, 0.0, yaw)    
+    goal_msg.pose.orientation.x = q[0]
+    goal_msg.pose.orientation.y = q[1]
+    goal_msg.pose.orientation.z = q[2]
+    goal_msg.pose.orientation.w = q[3]
 
     # Veröffentliche das Ziel
     rospy.loginfo("Sending goal to /move_base_simple/goal")
     goal_pub.publish(goal_msg)
 
     rospy.sleep(1)
+
+def yaw_to_quaternion(yaw):
+    # Placeholder function to convert yaw to quaternion
+    return 0.0, 0.0, 0.0, 1.0
 
 if __name__ == '__main__':
     try:
