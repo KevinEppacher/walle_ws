@@ -11,7 +11,6 @@
   <arg name="cmd_vel_topic" default="/cmd_vel_move_base" />
   <!-- <arg name="cmd_vel_topic" default="/cmd_vel" /> -->
 
-
   <!-- odom_topic: Specifies the topic for receiving odometry information from the robot. Default value is "odom". -->
   <arg name="odom_topic" default="odom" />
   

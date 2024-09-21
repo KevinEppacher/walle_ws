@@ -48,6 +48,8 @@
     
     <!-- odom remap: Remaps the "odom" topic to the value specified by the "odom_topic" argument. -->
     <remap from="odom" to="$(arg odom_topic)"/>
+
+    <!-- <remap from="scan" to="/fake_scan" /> -->
     
     <!-- DWAPlannerROS/min_vel_x: Sets the minimum linear velocity in the x-axis for the DWA local planner. This parameter is only set if the "move_forward_only" argument is true. -->
     <param name="DWAPlannerROS/min_vel_x" value="0.0" if="$(arg move_forward_only)" />

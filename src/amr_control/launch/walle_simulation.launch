@@ -4,13 +4,13 @@
     <arg name="model" default="burger" />
 
     <!-- Arguments for initial pose of the robot -->
-    <!-- <arg name="init_pose_x" default="0" />
+    <arg name="init_pose_x" default="0" />
     <arg name="init_pose_y" default="0" />
-    <arg name="init_pose_yaw" default="0" /> -->
+    <arg name="init_pose_yaw" default="0" />
 
-    <arg name="init_pose_x" default="4.5" />
+    <!-- <arg name="init_pose_x" default="4.5" />
     <arg name="init_pose_y" default="-1.0" />
-    <arg name="init_pose_yaw" default="1.57" />
+    <arg name="init_pose_yaw" default="1.57" /> -->
 
     <!-- Create gazebo world -->
     <include file="$(find gazebo_ros)/launch/empty_world.launch" >
@@ -87,10 +87,10 @@
     <rosparam file="$(find amr_control)/param/costmap_common_params_$(arg model).yaml" command="load" ns="global_costmap"/>
     
     <!-- Include move_base -->
-    <include file="$(find amr_control)/launch/move_base_nMPC.launch" />
+    <!-- <include file="$(find amr_control)/launch/move_base_nMPC.launch" /> -->
 
     <!-- Include move_base -->
-    <!-- <include file="$(find amr_control)/launch/move_base_DWA.launch" /> -->
+    <include file="$(find amr_control)/launch/move_base_DWA.launch" />
 
     <!-- <include file="$(find amr_control)/launch/move_base_TEB.launch" /> -->
 

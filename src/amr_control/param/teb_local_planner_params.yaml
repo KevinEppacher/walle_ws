@@ -1,3 +1,5 @@
+controller_frequency: 100000.0
+
 TebLocalPlannerROS:
 
  odom_topic: odom
@@ -15,6 +17,7 @@ TebLocalPlannerROS:
  exact_arc_length: True
  feasibility_check_no_poses: 5
  publish_feedback: False
+ control_frequency: 1000.0 
     
  # Robot
  max_vel_x: 0.22

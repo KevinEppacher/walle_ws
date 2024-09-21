@@ -12,7 +12,7 @@ import roslib
 # ROSBAG file paths
 bag_nmpc_filename = 'recorded_data_nMPC_15.bag'
 bag_dwa_filename = 'recorded_data_DWA_10.bag'
-bag_teb_filename = 'recorded_data_TEB_2.bag'
+bag_teb_filename = 'recorded_data_TEB_7.bag'
 
 # bag_nmpc_filename = 'recorded_data_nMPC_16.bag'
 # bag_dwa_filename = 'recorded_data_DWA_12.bag'
