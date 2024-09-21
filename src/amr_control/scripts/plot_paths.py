@@ -10,13 +10,13 @@ import roslib
 
 # ------------------------- CONFIGURABLE PARAMETERS -------------------------
 # ROSBAG file paths
-# bag_nmpc_filename = 'recorded_data_nMPC_15.bag'
-# bag_dwa_filename = 'recorded_data_DWA_10.bag'
-# bag_teb_filename = 'recorded_data_TEB_2.bag'
+bag_nmpc_filename = 'recorded_data_nMPC_15.bag'
+bag_dwa_filename = 'recorded_data_DWA_10.bag'
+bag_teb_filename = 'recorded_data_TEB_2.bag'
 
-bag_nmpc_filename = 'recorded_data_nMPC_17.bag'
-bag_dwa_filename = 'recorded_data_DWA_12.bag'
-bag_teb_filename = 'recorded_data_TEB_6.bag'
+# bag_nmpc_filename = 'recorded_data_nMPC_16.bag'
+# bag_dwa_filename = 'recorded_data_DWA_12.bag'
+# bag_teb_filename = 'recorded_data_TEB_6.bag'
 
 
 # ROS topics for cmd_vel (used by different planners)
@@ -122,7 +122,6 @@ def calculate_position_on_circle(center_x, center_y, radius, angle_deg):
     return x, y
 
 # ------------------------- MAIN PROGRAM -------------------------
-# ------------------------- MAIN PROGRAM -------------------------
 def main():
     # Path to the ROSBAG directory
     amr_control_path = roslib.packages.get_pkg_dir('amr_control')
@@ -226,7 +225,7 @@ def main():
     bag_global.close()
 
     # Plot global plan
-    ax1.plot(global_path_x, global_path_y, label='Global Plan', color='black', linestyle=':', linewidth=2)
+    ax1.plot(global_path_x, global_path_y, label='Global Plan', color='black', linestyle=':', linewidth=4)
 
     # Extracting the paths for nMPC, DWA, and TEB
     nmpc_path_x, nmpc_path_y = [], []
@@ -251,10 +250,11 @@ def main():
         teb_path_x, teb_path_y = process_path_data(msg)
     bag_teb.close()
 
-    # Plotting the paths
-    ax1.plot(nmpc_path_x, nmpc_path_y, label='nMPC Path', color='green', linestyle='-', linewidth=2)
-    ax1.plot(dwa_path_x, dwa_path_y, label='DWA Path', color='red', linestyle='--', linewidth=2)
-    ax1.plot(teb_path_x, teb_path_y, label='TEB Path', color='blue', linestyle='-.', linewidth=2)
+    # Plotting the paths with thicker lines and a unique symbol for each path
+    ax1.plot(nmpc_path_x, nmpc_path_y, label='nMPC Path', color='green', linestyle='-', linewidth=4, marker='o', markersize=8)
+    ax1.plot(dwa_path_x, dwa_path_y, label='DWA Path', color='red', linestyle='--', linewidth=4, marker='s', markersize=8)
+    ax1.plot(teb_path_x, teb_path_y, label='TEB Path', color='blue', linestyle='-.', linewidth=4, marker='^', markersize=8)
+
 
     # Adjust font sizes using global parameters
     ax1.set_xlabel('X [m]', fontsize=axis_label_fontsize)
@@ -269,54 +269,54 @@ def main():
     plt.grid(True)
     plt.show()
 
+   # Create figure with three subplots (CTE, Computation Time, Arrival Time)
+    # Create figure with three subplots in a single row
+    fig, ax = plt.subplots(1, 3, figsize=(15, 5))
+
+    planners = ['nMPC', 'DWA', 'TEB']
+    axis_label_fontsize_2 = axis_label_fontsize / 2
+    tick_label_fontsize_2 = tick_label_fontsize / 2
+
     # ------------------------- CROSS-TRACKING ERROR -------------------------
-    # 3. Calculate the cross-tracking error (CTE) for each planner
+    # Calculate the cross-tracking error (CTE) for each planner
     nmpc_cte = calculate_cross_tracking_error((global_path_x, global_path_y), (nmpc_path_x, nmpc_path_y))
     dwa_cte = calculate_cross_tracking_error((global_path_x, global_path_y), (dwa_path_x, dwa_path_y))
     teb_cte = calculate_cross_tracking_error((global_path_x, global_path_y), (teb_path_x, teb_path_y))
 
-    print(f"nMPC Cross-Tracking Error: {nmpc_cte:.2f} meters")
-    print(f"DWA Cross-Tracking Error: {dwa_cte:.2f} meters")
-    print(f"TEB Cross-Tracking Error: {teb_cte:.2f} meters")
-
-    # 4. Plot the cross-tracking errors in a bar plot
-    fig, ax2 = plt.subplots()
-    planners = ['nMPC', 'DWA', 'TEB']
     cte_values = [nmpc_cte, dwa_cte, teb_cte]
 
-    ax2.bar(planners, cte_values, color=['green', 'red', 'blue'])
+    # Plot CTE in the first subplot
+    ax[0].bar(planners, cte_values, color=['green', 'red', 'blue'])
+    ax[0].set_xlabel('Planners', fontsize=axis_label_fontsize_2)
+    ax[0].set_ylabel('Cross-Tracking Error [m]', fontsize=axis_label_fontsize_2)
+    ax[0].set_title('Cross-Tracking Error Comparison', fontsize=axis_label_fontsize_2)
+    ax[0].tick_params(axis='both', which='major', labelsize=tick_label_fontsize_2)
+    ax[0].grid(True)
 
-    # Adjust font sizes for the bar plot
-    ax2.set_xlabel('Planners', fontsize=axis_label_fontsize)
-    ax2.set_ylabel('Cross-Tracking Error [m]', fontsize=axis_label_fontsize)
-    ax2.set_title('Cross-Tracking Error Comparison', fontsize=axis_label_fontsize)
-    ax2.tick_params(axis='both', which='major', labelsize=tick_label_fontsize)
-
-    plt.grid(True)
-    plt.show()
-    
-    # ------------------------- Computation Time Plot -------------------------
-    fig, ax3 = plt.subplots()
+    # ------------------------- COMPUTATION TIME -------------------------
     computation_times = [nmpc_avg_computation_time * 1000, dwa_avg_computation_time * 1000, teb_avg_computation_time * 1000]
 
-    ax3.bar(planners, computation_times, color=['green', 'red', 'blue'])
-    ax3.set_xlabel('Planners', fontsize=axis_label_fontsize)
-    ax3.set_ylabel('Computation Time [ms]', fontsize=axis_label_fontsize)
-    ax3.set_title('Computation Time Comparison', fontsize=axis_label_fontsize)
-    ax3.tick_params(axis='both', which='major', labelsize=tick_label_fontsize)
-    plt.grid(True)
-    plt.show()
+    # Plot Computation Time in the second subplot
+    ax[1].bar(planners, computation_times, color=['green', 'red', 'blue'])
+    ax[1].set_xlabel('Planners', fontsize=axis_label_fontsize_2)
+    ax[1].set_ylabel('Computation Time [ms]', fontsize=axis_label_fontsize_2)
+    ax[1].set_title('Computation Time Comparison', fontsize=axis_label_fontsize_2)
+    ax[1].tick_params(axis='both', which='major', labelsize=tick_label_fontsize_2)
+    ax[1].grid(True)
 
-    # ------------------------- PLOT ARRIVAL TIMES -------------------------
-    fig, ax4 = plt.subplots()
+    # ------------------------- ARRIVAL TIME -------------------------
     arrival_times = [nmpc_total_time, dwa_total_time, teb_total_time]
 
-    ax4.bar(planners, arrival_times, color=['green', 'red', 'blue'])
-    ax4.set_xlabel('Planners', fontsize=axis_label_fontsize)
-    ax4.set_ylabel('Total Duration [s]', fontsize=axis_label_fontsize)
-    ax4.set_title('Arrival Time Comparison', fontsize=axis_label_fontsize)
-    ax4.tick_params(axis='both', which='major', labelsize=tick_label_fontsize)
-    plt.grid(True)
+    # Plot Arrival Time in the third subplot
+    ax[2].bar(planners, arrival_times, color=['green', 'red', 'blue'])
+    ax[2].set_xlabel('Planners', fontsize=axis_label_fontsize_2)
+    ax[2].set_ylabel('Total Duration [s]', fontsize=axis_label_fontsize_2)
+    ax[2].set_title('Arrival Time Comparison', fontsize=axis_label_fontsize_2)
+    ax[2].tick_params(axis='both', which='major', labelsize=tick_label_fontsize_2)
+    ax[2].grid(True)
+
+    # Adjust layout and show the combined plot
+    plt.tight_layout()
     plt.show()
 
 
