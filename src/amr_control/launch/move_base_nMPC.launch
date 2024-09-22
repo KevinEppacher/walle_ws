@@ -21,9 +21,9 @@
   <rosparam file="$(find amr_control)/param/optimal_control_params.yaml" />
 
   <!-- Starte die amr_control Nodes -->
-  <node name="optimal_control" pkg="amr_control" type="optimal_control.py" output="screen" />
+  <node name="optimal_control" pkg="amr_control" type="optimal_control.py" output="screen"/>
   
-  <node name="obstacle_detection" pkg="amr_control" type="obstacle_detection.py" />
+  <node name="obstacle_detection" pkg="amr_control" type="obstacle_detection.py"/>
 
 
   <!-- move_base -->

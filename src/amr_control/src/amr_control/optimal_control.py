@@ -27,15 +27,6 @@ from amr_control.obstacle import Obstacle
 
 def main():
     try:
-        # obstacle = Obstacle()
-        # model = RobotModel()
-        # obstacles = [
-        #     [4, 1, 0.5],
-        #     [-2, 1, 0.5],
-        #     [4, 4, 0.7],
-        #     [-4, 4, 0.7]
-        # ]
-        # controller = nMPC(model)
         TrajectoryPlanner()
         rospy.spin()
     except rospy.ROSInterruptException:

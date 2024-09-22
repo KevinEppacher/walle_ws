@@ -152,10 +152,6 @@ class nMPC:
         ref_traj_array = []
         
         euklidean_distance = np.linalg.norm(current_state[:2] - target_state[:2], 2)
-        # print("Target State: ", target_state)
-        # print("Current State: ", current_state)
-        # print("Euklidean Distance: ", euklidean_distance)
-        # print("")
 
         # Verwende jeden Punkt in der Referenztrajektorie
         for k in range(self.N):
