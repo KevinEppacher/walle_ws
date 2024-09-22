@@ -86,8 +86,6 @@ class ObstacleDetection:
         """Veröffentlicht erkannte Ecken als Kreise mit Koordinaten relativ zum /map-Frame."""
         obstacles_msg = Float32MultiArray()
         max_range = int(self.search_radius * 100)
-
-        obstacles = []
         
         # Hole die Transformation vom Roboter (/base_footprint) zum globalen Frame (/map)
         try:
