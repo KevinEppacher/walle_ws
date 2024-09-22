@@ -92,6 +92,9 @@ print(new_trajectory)
 # Berechnungsende
 end_time = time.time()
 
+# Increase font sizes
+plt.rcParams.update({'font.size': 40, 'axes.titlesize': 40, 'axes.labelsize': 40, 'legend.fontsize': 14, 'xtick.labelsize': 40, 'ytick.labelsize': 40})
+
 # Berechnungsdauer in Sekunden
 calculation_time = end_time - start_time
 
@@ -111,6 +114,11 @@ for i, (x, y, yaw) in enumerate(ref_traj):
 # Plotten der Orientierungspfeile für die interpolierte Trajektorie
 for i, (x, y, yaw) in enumerate(new_trajectory):
     plt.arrow(x, y, np.cos(yaw), np.sin(yaw), head_width=0.1, color='red', zorder=11)
+
+# Anzeige der Achsenbeschriftungen und Titel
+plt.xlabel('X Position [m]', fontsize=50)
+plt.ylabel('Y Position [m]', fontsize=50)
+plt.title('Original and Interpolated Trajectories', fontsize=50)
 
 # Legende
 plt.legend()

@@ -36,12 +36,29 @@ Abstract
 
 3. Methods
     nMPC
+        Single/Multiple Shooting Discretisation
+        Model
+        Cost Function
+        Hard Constraints
+
     Trajectory Planner
+        MoveBase Global Plan
+        Trajectory Orientation
+        Trajectory Interpolation --> image
+        Calculating Time descretisation
+
     Obstacle Detection
+        Transform scan topic into 2d coordinates
+        Defining search cone with search radius and search angle --> image
+        Shi-Thomas Corner Detection --> originally only for corners
+        Calculating position of corner relative from /map to /base_footprint
+        Discard obstacles outside search cone
+        Sending (x,y,radius) to nMPC controller
 
 4. Implementation
     CasAdi
     ROS Nav
+    PC Information + Docker Container
     Parameter Settings for nMPC controller
         Table with all params for controller, trajectory planner and obstacle detection
 

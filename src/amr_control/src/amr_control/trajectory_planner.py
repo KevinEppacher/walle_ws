@@ -91,7 +91,7 @@ class TrajectoryPlanner:
         # Setze das Ziel auf den letzten Punkt in der Trajektorie
         self.target_state = self.ref_traj[-1]
         
-        self.ref_traj, self.T = self.interpolate_trajectory(self.ref_traj, self.prediction_distance, self.controller.N, self.controller.v_max, 1.1)
+        self.ref_traj, self.T = self.interpolate_trajectory(self.ref_traj, self.prediction_distance, self.controller.N, self.controller.v_max)
 
 
 
@@ -129,7 +129,7 @@ class TrajectoryPlanner:
         # Rückgabe als NumPy-Array
         return np.array(waypoints_with_yaw)
     
-    def interpolate_trajectory(self, ref_traj, total_prediction_distance, N, robot_maximum_speed, scale_factor=1.5):
+    def interpolate_trajectory(self, ref_traj, total_prediction_distance, N, robot_maximum_speed):
         """
         Interpolates or reduces the given trajectory to exactly N points, including orientation (Yaw).
         Only keeps waypoints that are within the total prediction distance.
@@ -167,9 +167,6 @@ class TrajectoryPlanner:
 
         # Gesamtdistanz der Referenz-Trajektorie
         total_ref_distance = cumulative_distances_within[-1]
-
-        # Skalierte Distanz zwischen den Punkten in der Referenztrajektorie
-        scaled_total_distance = total_ref_distance * scale_factor
 
         # Berechne die Zeit für jede Vorhersage basierend auf der maximalen Geschwindigkeit
         prediction_distance = total_prediction_distance / N
@@ -231,14 +228,16 @@ class TrajectoryPlanner:
             
     def compute_control_input(self):
         if np.linalg.norm(self.current_state - self.target_state, 2) > self.goal_tolerance:
-            # self.viz.create_marker_array(self.obstacles)
-            # self.u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, self.T, self.obstacles)
+            self.viz.create_marker_array(self.obstacles)
+            self.u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, self.T, self.obstacles)
             
-            obs = [
-                [1.5, -0.5, 1.5]
-            ]
-            self.viz.create_marker_array(obs)
-            self.u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, self.T, obs)
+            # obs = [
+            #     [5, -0.5, 0.4],
+            #     [5.4, -0.5, 0.4],
+            #     [5.3, 0.9, 0.8 * 2]
+            # ]
+            # self.viz.create_marker_array(obs)
+            # self.u = self.controller.solve_mpc(self.current_state, self.ref_traj, self.target_state, self.T, obs)
             self.publish_cmd_vel(self.u)
         else:
             self.u = [0, 0]
