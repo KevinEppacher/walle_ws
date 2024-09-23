@@ -9,6 +9,8 @@ nmpc_controller:
   omega_max: 0.5  # Maximale Winkelgeschwindigkeit
   max_obstacles: 3  # Maximale Anzahl an Hindernissen
   robot_safety_diam: 0.306  # Sicherheitsradius des Roboters
+  obstacle_safety_weight: 0.6  # Gewichtung der Hindernisse
+  epsilon: 0.1  # Epsilon für die Hindernisvermeidung
 
 trajectory_planner:
   # init_position: [0.0, 0.0, 0.0]  # Initiale Position

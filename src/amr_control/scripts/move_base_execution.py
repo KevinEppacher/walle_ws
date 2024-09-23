@@ -22,11 +22,15 @@ def send_goal():
     goal_msg.header.stamp = rospy.Time.now()
 
     # Setze die Position (x, y, z) und Orientierung (Quaternion) des Ziels
-    goal_msg.pose.position.x = 1.5
-    goal_msg.pose.position.y = 2.0
+    # goal_msg.pose.position.x = 1.5
+    # goal_msg.pose.position.y = 2.0
+    # goal_msg.pose.position.z = 0.0
+    
+    goal_msg.pose.position.x = 7
+    goal_msg.pose.position.y = 0.0
     goal_msg.pose.position.z = 0.0
 
-    yaw = -1-57
+    yaw = 0
     q = quaternion_from_euler(0.0, 0.0, yaw)    
     goal_msg.pose.orientation.x = q[0]
     goal_msg.pose.orientation.y = q[1]
@@ -39,9 +43,6 @@ def send_goal():
 
     rospy.sleep(1)
 
-def yaw_to_quaternion(yaw):
-    # Placeholder function to convert yaw to quaternion
-    return 0.0, 0.0, 0.0, 1.0
 
 if __name__ == '__main__':
     try:

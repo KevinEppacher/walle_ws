@@ -36,6 +36,9 @@ class nMPC:
         self.omega_max = rospy.get_param('nmpc_controller/omega_max', 0.5)  # Maximum angular velocity
         # Prediction distance
         self.prediction_distance = rospy.get_param('nmpc_controller/prediction_distance', 2.0)  # Prediction distance
+        self.robot_safety_diam = rospy.get_param('nmpc_controller/robot_safety_diam', 0.2)  # Robot safety diameter
+        self.penalty_weight = rospy.get_param('nmpc_controller/penalty_weight', 0.6)  # Penalty weight for obstacle avoidance
+        self.epsilon = rospy.get_param('nmpc_controller/epsilon', 0.1)  # Epsilon for obstacle avoidance
         
         self.viz = Visualizer()
 
@@ -59,7 +62,7 @@ class nMPC:
         U = ca.SX.sym('U', n_controls, N)
         P = ca.SX.sym('P', n_states + N * (n_states + n_controls) + self.n_obstacles * 3 + 1)
         X = ca.SX.sym('X', n_states, N + 1)
-        rob_diam = self.model.diam
+        rob_diam = self.robot_safety_diam
 
         # Definiere die Kostenfunktion
         obj = 0
@@ -95,14 +98,21 @@ class nMPC:
         terminal_state = X[:, N]  # Zustand am Ende des Horizonts
         obj += ca.mtimes([terminal_state.T, S, terminal_state]) / 2
 
-        # Hindernisvermeidungs-Constraints
+        # Obstacle avoidance constraints (hard and soft)
         for k in range(N + 1):
             for i in range(self.n_obstacles):
                 obs_x = P[-(3 * (i + 1) + 1)]
                 obs_y = P[-(3 * (i + 1))]
                 obs_diam = P[-(3 * (i + 1) - 1)]
-                obs_constraint = -ca.sqrt((X[0, k] - obs_x) ** 2 + (X[1, k] - obs_y) ** 2) + (rob_diam / 2 + obs_diam / 2)
-                g = ca.vertcat(g, obs_constraint)
+                
+                # Hard constraint: obstacle avoidance
+                hard_obs_constraint = -ca.sqrt((X[0, k] - obs_x) ** 2 + (X[1, k] - obs_y) ** 2) + (rob_diam / 2 + obs_diam / 2)
+                g = ca.vertcat(g, hard_obs_constraint)  # Ensure the robot does not collide with the obstacle
+
+                # Soft constraint: penalty for proximity to obstacles
+                distance_to_obstacle = ca.sqrt((X[0, k] - obs_x) ** 2 + (X[1, k] - obs_y) ** 2)
+                soft_obs_cost = self.penalty_weight * (1 / (distance_to_obstacle + self.epsilon))
+                obj += self.penalty_weight * soft_obs_cost
 
         # Entscheidungsvariable zu einem Spaltenvektor machen
         self.OPT_variables = ca.vertcat(ca.reshape(X, n_states * (N + 1), 1), ca.reshape(U, n_controls * N, 1))
