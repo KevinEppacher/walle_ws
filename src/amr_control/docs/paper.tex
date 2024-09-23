@@ -1,4 +1,5 @@
 \documentclass[conference]{IEEEtran}
+
 \IEEEoverridecommandlockouts
 % The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
 \usepackage{fancyhdr}
@@ -14,6 +15,8 @@
 \usepackage{booktabs}
 \usepackage{caption}
 \usepackage[numbers,sort&compress]{natbib}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
 
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -71,16 +74,36 @@ However, it is important to note that while the global path provides an initial 
 
 % Motivation for creating paper contribution (sehr grobe Übersicht über sota)
 
-The Dynamic Window Approach (DWA) efficiently computes safe velocities by evaluating a limited set of possible trajectories. However, it lacks long-term trajectory optimization and struggles with dynamic obstacles due to its short prediction horizon. In contrast, nMPC optimizes over a longer horizon, allowing for more accurate predictions and better handling of dynamic environments.
+\cite{ASAP} conducted a comprehensive comparison of its developed local planner, ASAP, with other seminal planners, including DWA, TEB, and MPC. In Figure \ref{fig:DWA_TEB_MPC_ASAP_path}, the performance of these planners is compared as they guide a mobile robot to follow a global path while avoiding obstacles. 
 
-The Timed Elastic Band (TEB) planner adjusts global paths to account for dynamic obstacles and kinodynamic constraints but can suffer from high computational demands in dense or highly dynamic environments. nMPC provides a more computationally efficient solution by directly incorporating system dynamics and constraints into the optimization process, improving real-time performance in dynamic environment.
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=1\columnwidth]{images/DWA_TEB_MPC_ASAP_path.png}
+    \caption{Blockdiagram of nMPC for future Implementation }
+    \label{fig:DWA_TEB_MPC_ASAP_path}
+\end{figure}
 
-Move Base Flex (MBF) offers flexibility by integrating various local planners, such as DWA and TEB, but inherits their limitations in obstacle avoidance. By integrating nMPC into MBF, a more robust solution can be achieved, as nMPC offers superior handling of nonlinear dynamics and dynamic obstacle avoidance.
+In this study, \cite{ASAP} evaluated the local planners based on metrics such as arrival time, cross track error, and computation time. 
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=1\columnwidth]{images/DWA_TEB_MPC_ASAP_stats.png}
+    \caption{Blockdiagram of nMPC for future Implementation }
+    \label{fig:DWA_TEB_MPC_ASAP_stats}
+\end{figure}
+
+The findings in Figure \ref{fig:DWA_TEB_MPC_ASAP_stats} indicate that the MPC local planner achieved the shortest arrival time, while maintaining the same cross track error as the ASAP planner. However, when it comes to computation time, the ASAP controller was the fastest, with a processing time of just 0.2 ms, compared to DWA's 40 ms, TEB's 5 ms, and MPC's 18 ms. Furthermore, \cite{ASAP} highlights that the DWA planner had the highest collision rate, which also corresponds to its longer arrival time.
+
+Similarly, \cite{MPCvsTEB} performed a comparison between MPC and TEB planners. The study evaluated both the TEB planner and various forms of MPC in terms of arrival time, path length, control effort, and CPU time. The results indicated that the TEB planner and the quadratic form of MPC had comparable arrival times, around 126.9 seconds. However, the time-optimal MPC, which is specifically optimized for minimizing arrival time, completed the task in just 116 seconds. In terms of path length and control effort, both planners showed similar performance. However, the computational time for MPC was found to be three times higher than that of the TEB planner, demonstrating the trade-off between efficiency and computational cost.
 
 % Problem description arising from motivation (was fehlt im aktuellen sota -> vermeidung dynamischer Objekte)
-Current local planners, such as the widely used Dynamic Window Approach (DWA) in the ROS Navigation stack, are effective for static and slow-moving obstacles but fail in dynamic environments with fast-moving obstacles. These planners lack the ability to predict and react effectively to rapidly changing environments, leading to suboptimal performance in real-time obstacle avoidance.
+\cite{ASAP} and \cite{MPCvsTEB} illustrate promising results for the MPC as local planner, especially due to the high adaptability forming the cost function for the required needs and the model adaptability, as for example omni-drive-directional-wheels. However, it is shown, that the MPC planner in combination with dynamic obstacle avoidance lack in computation time.
 
 % Paper contribution
+This work contributes to the state-of-the-art development, of a nonlinear Model Predictive Controller for a mobile robot with integrated dynamic obstacle avoidance. 
+
+The main objective is to design a local planner that effectively addresses the challenges of dynamic obstacle avoidance, offering improved performance in real-time navigation within dynamic environments.
+
 This work addresses these challenges by developing a nonlinear Model Predictive Controller (nMPC) for differential drive mobile robots, specifically designed for dynamic obstacle avoidance. The primary contribution is the integration of nMPC to improve real-time navigation performance in dynamic environments. Unlike conventional approaches such as DWA, the proposed nMPC effectively handles nonlinear dynamics and dynamic obstacles, offering superior prediction accuracy and responsiveness.
 
 This paper contributes to the field by rigorously evaluating the nMPC against both DWA and recent advancements in local planning algorithms from the past five years. The results demonstrate that the nMPC provides enhanced trajectory optimization and obstacle avoidance capabilities, filling a crucial gap in mobile robot control by addressing scenarios that existing methods have not sufficiently solved.
@@ -91,8 +114,6 @@ The rest of the paper is organized as follows: Section II discusses related work
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{State-of-the-Art}
-
-
 
 In this section, we provide an overview of several state-of-the-art local planners, including the Dynamic Window Approach (DWA), Timed Elastic Band (TEB), Model Predictive Control (MPC), Move Base Flex (MBF), Agile and Safe Pursuit (ASAP), and Reinforcement Learning (RL)-based planners. We explain how these planners function and highlight their key limitations, especially when operating in dynamic environments. Additionally, we discuss how nonlinear Model Predictive Control (nMPC) addresses these limitations and provides improved performance.
 
@@ -135,8 +156,7 @@ Recent improvements to TEB incorporate dynamic obstacle velocities using Kalman 
 MPC computes optimal control inputs over a prediction horizon by solving an optimization problem that accounts for both system dynamics and environmental constraints. Given the system model \(x_{k+1} = f(x_k, u_k)\), MPC minimizes the cost function defined in Equation \eqref{eq:mpc_cost}:
 
 \begin{equation}
-\label{eq:mpc_cost}
-J(\mathbf{u}) = \sum_{k=0}^{N-1} \left( (x_k - x_{\text{ref},k})^\top Q (x_k - x_{\text{ref},k}) + u_k^\top R u_k \right)
+\min_{\vec{u}_k} J(\vec{x}_k, \vec{u}_k) = \phi(\vec{x}(N)) + \sum_{k=0}^{N-1} L(\vec{x}(k), \vec{u}(k))
 \end{equation}
 
 MPC offers smooth, optimized control over nonlinear dynamics, making it ideal for complex environments. However, it is computationally demanding, especially in real-time applications. Additionally, MPC requires highly accurate models of the robot and environment, which may not always be feasible in dynamic situations.
@@ -173,47 +193,18 @@ nMPC addresses the shortcomings of traditional local planners by predicting futu
 
 Compared to DWA, TEB, MPC, and RL-based planners, nMPC offers improved handling of dynamic obstacles by continuously adjusting the robot's trajectory in real-time, optimizing for both safety and performance. It also handles nonlinear dynamics more effectively, making it a robust solution for highly dynamic environments.
 
-\section{Comparison of Local Planners}
-
-\begin{table}[h]
-\centering
-\caption{Evaluation of Local Planners}
-\begin{tabular}{|l|c|c|c|}
-\hline
-\textbf{Planner} & \textbf{Dynamic} & \textbf{Nonlinear} & \textbf{Real-time} \\
-                 & \textbf{Obstacles} & \textbf{Dynamics}  & \textbf{Performance} \\ \hline
-DWA              & Poor               & Limited            & Good                \\ \hline
-TEB              & Good               & Limited            & Moderate            \\ \hline
-MPC              & Good               & Good               & Poor                \\ \hline
-Move Base Flex   & Inherited          & Inherited          & Modular             \\
-                 & from planners      & from planners      &                     \\ \hline
-ASAP             & Moderate           & Poor               & Good                \\ \hline
-RL-based         & Good               & Limited            & Variable            \\ \hline
-\end{tabular}
-\end{table}
-
-\bibliographystyle{IEEEtran}
-\bibliography{references}
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Methods}
 
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=1\columnwidth]{images/nMPC_Local_Planner_Diagram_2.png}
+    \caption{ }
+    \label{fig:nMPC_Local_Planner_Diagram_2}
+\end{figure}
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Implementation Detail}
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Discussion and Results}
-
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Summary and Outlook}
+\subsection{nMPC}
 
 \begin{figure}[!h]
     \centering
@@ -222,40 +213,68 @@ RL-based         & Good               & Limited            & Variable           
     \label{fig:MPC_Blockdiagram_Implementation}
 \end{figure}
 
+\begin{equation}\label{eq:state_vector}
+    \mathbf{x} = \begin{bmatrix} x & y & \theta \end{bmatrix}^T
+\end{equation}
 
-\newblock
+\begin{equation}\label{eq:control_vector}
+    u = \begin{bmatrix}
+    v & \omega
+\end{bmatrix}^T
+\end{equation}
 
 
 \begin{equation}
-\min_{\vec{u}_k} J(\vec{x}_k, \vec{u}_k) = \phi(\vec{x}(N)) + \sum_{k=0}^{N-1} L(\vec{x}(k), \vec{u}(k))
+\label{eq:L_function}
+\begin{aligned}
+\min_{\vec{u}_k} J(\vec{x}_k, \vec{u}_k) = \phi(\vec{x}(N)) + \sum_{k}^{k+N-1} &
+(\vec{x}_{R,k} - \vec{x}_{\text{ref},k})^T Q (\vec{x}_{R,k} - \vec{x}_{\text{ref},k}) \\
+&+ \vec{u}_k^T R \vec{u}_k
+\end{aligned}
 \end{equation}
+
+\begin{align}
+\text{subject to: } \quad \vec{x}(k+1) &= f(\vec{x}(k), \vec{u}(k)), \\
+\vec{x}(0) &= \vec{x}_0, \\
+\vec{u}(k) &\in U, \quad \forall k \in [0, N-1], \\
+\vec{x}(k) &\in X, \quad \forall k \in [0, N].
+\end{align}
+
 
 \begin{equation}
 \label{eq:phi_definition}
 \phi(\vec{x}(N)) = \frac{1}{2} \vec{x}_N^T S \vec{x}_N
 \end{equation}
 
-
-
-\begin{equation}
-\label{eq:L_function}
-\begin{aligned}
-L(\vec{x}(k), \vec{u}(k)) = \frac{1}{2} \sum_{k}^{k+N-1} &
-(\vec{x}_{R,k} - \vec{x}_{\text{ref},k})^T Q (\vec{x}_{R,k} - \vec{x}_{\text{ref},k}) \\
-&+ \vec{u}_k^T R \vec{u}_k
-\end{aligned}
-\end{equation}
-
-
-%Constraints - Control States, Collission avoidance
-
-For safety reasons, strict limits on the control variables \(u_k\) are set in Equation \ref{eq:u_constraints} to avoid oversaturation. These limits ensure that stays within a defined range.
-
-
-
 \begin{equation}
 \label{eq:u_constraints}
 \vec{u}_{\text{min}} \leq \vec{u}_k \leq \vec{u}_{\text{max}}, \quad \forall k \quad \text{…} \quad \vec{u} \in \mathbb{R}^2
+\end{equation}
+
+\begin{equation} \label{eq:1}
+    x_{k+1} = Ax_k + Bu_k
+\end{equation}
+
+
+\begin{equation} \label{eq:discrete_state_space_equation_DDMR}
+\begin{bmatrix}
+    x_{k+1} \\
+    y_{k+1} \\
+    \theta_{k+1}
+\end{bmatrix}
+=
+\begin{bmatrix}
+    x_k \\
+    y_k \\
+    \theta_k
+\end{bmatrix}
++ \Delta T
+\begin{bmatrix}
+    \cos(\theta) & 0 \\
+    \sin(\theta) & 0 \\
+    0 & 1
+\end{bmatrix}
+u_k
 \end{equation}
 
 
@@ -264,7 +283,141 @@ For safety reasons, strict limits on the control variables \(u_k\) are set in Eq
 -\sqrt{(x_R - x_{\text{obst}})^2 + (y_R - y_{\text{obst}})^2} + (r_R + r_{\text{obst}}) \leq 0
 \end{equation}
 
-In this equation, \( (x_{\text{obst}}, y_{\text{obst}}) \) denotes the position of an obstacle, and \( r_r + r_{\text{obst}}\) represents the sum of the radii of the robot and the obstacle, ensuring a safety margin for avoidance. 
+
+
+
+
+
+
+
+
+\subsection{Trajectory Planner}
+
+\begin{algorithm}
+\caption{Trajectory Interpolation}
+\begin{algorithmic}[1]
+\REQUIRE $P = \{(x_i, y_i, \text{yaw}_i)\}$, $d_{\text{pred}}$, $N$, $v_{\text{max}}$, $\alpha$
+\ENSURE $P_{\text{new}}$, $T$
+\STATE $D_i = \sum \sqrt{(x_{i+1} - x_i)^2 + (y_{i+1} - y_i)^2}$
+\STATE Retain points where $D_i \leq d_{\text{pred}}$
+\STATE $d_{\text{point}} = \frac{d_{\text{pred}}}{N}$
+\STATE $T = \frac{d_{\text{point}}}{v_{\text{max}}}$
+\STATE $T = T \cdot \alpha$
+\STATE Interpolate $x$, $y$, and $\text{yaw}$ to get $N$ points
+\RETURN $P_{\text{new}}$, $T$
+\end{algorithmic}
+\end{algorithm}
+
+
+
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=1\columnwidth]{images/Interpolated_Trajectories.png}
+    \caption{ }
+    \label{fig:nMPC_16_vs_DWA_12_vs_TEB_6_Path}
+\end{figure}
+
+
+\begin{algorithm}
+\caption{Filtered Obstacle Detection}
+\begin{algorithmic}[1]
+\STATE Filter laser scan data $(r_i, \theta_i)$ using:
+\[
+r_i < r_{\text{search}} \quad \text{and} \quad \left( -\frac{\theta_{\text{search}}}{2} \leq \theta_i \leq \frac{\theta_{\text{search}}}{2} \right)
+\]
+\STATE Convert filtered data to 2D coordinates:
+\[
+x_i = r_i \cos(\theta_i), \quad y_i = r_i \sin(\theta_i)
+\]
+\STATE Create lidar image:
+\[
+x_{\text{img}} = \left( \frac{x_i}{r_{\text{max}}} \times I_{\text{size}} \right) + \frac{I_{\text{size}}}{2}, \quad y_{\text{img}} = \left( \frac{y_i}{r_{\text{max}}} \times I_{\text{size}} \right) + \frac{I_{\text{size}}}{2}
+\]
+\STATE Apply Gaussian blur:
+\[
+I_{\text{blur}}(x, y) = \frac{1}{2\pi \sigma^2} \exp\left(-\frac{x^2 + y^2}{2\sigma^2}\right) \otimes I_{\text{img}}(x, y)
+\]
+\STATE Detect corners using Shi-Tomasi:
+\[
+\{(x_{\text{corner}}, y_{\text{corner}})\} = \text{Shi-Tomasi}(I_{\text{blur}})
+\]
+\STATE Sort by distance:
+\[
+d_i = \sqrt{x_{\text{corner}}^2 + y_{\text{corner}}^2}
+\]
+\STATE Transform detected corners into the robot frame:
+\[
+x_{\text{trans}} = x_{\text{robot}} + (x_{\text{corner}} \cos(\text{yaw}) - y_{\text{corner}} \sin(\text{yaw}))
+\]
+\[
+y_{\text{trans}} = y_{\text{robot}} + (x_{\text{corner}} \sin(\text{yaw}) + y_{\text{corner}} \cos(\text{yaw}))
+\]
+\STATE Select $N_{\text{max}}$ closest points
+\RETURN $(x_{\text{trans}}, y_{\text{trans}}, r_{\text{corner}})$ to nMPC
+\end{algorithmic}
+\end{algorithm}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Implementation Detail}
+
+The experiments were conducted on a system equipped with an AMD Ryzen 5 7600X 6-Core Processor running at a maximum clock speed of 5.45 GHz. The system has 12 logical CPUs (2 threads per core) and 30 GB of RAM, with no swap space configured.
+
+The experiments ran inside a Docker container, which utilized up to 4.808 GB of RAM (approximately 15.78 \% of the available memory) and had a peak CPU usage of 855.20 \%, indicating multi-core processing. The container handled a maximum of 393 processes during the experiments.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Discussion and Results}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=1\columnwidth]{images/nMPC_15_vs_DWA_10_vs_TEB_8_Path.png}
+    \caption{ }
+    \label{fig:nMPC_16_vs_DWA_12_vs_TEB_6_Path}
+\end{figure}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=1\columnwidth]{images/nMPC_15_vs_DWA_10_vs_TEB_8.png}
+    \caption{ }
+    \label{fig:nMPC_16_vs_DWA_12_vs_TEB_6_Path}
+\end{figure}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=1\columnwidth]{images/nMPC_16_vs_DWA_12_vs_TEB_9_Path.png}
+    \caption{ }
+    \label{fig:nMPC_16_vs_DWA_12_vs_TEB_6_Path}
+\end{figure}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=1\columnwidth]{images/nMPC_16_vs_DWA_12_vs_TEB_9.png}
+    \caption{ }
+    \label{fig:nMPC_16_vs_DWA_12_vs_TEB_6_Path}
+\end{figure}
+
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=1\columnwidth]{images/nMPC_18_vs_DWA_15_vs_TEB_10_Path.png}
+    \caption{ }
+    \label{fig:nMPC_16_vs_DWA_12_vs_TEB_6_Path}
+\end{figure}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=1\columnwidth]{images/nMPC_18_vs_DWA_15_vs_TEB_10.png}
+    \caption{ }
+    \label{fig:nMPC_16_vs_DWA_12_vs_TEB_6_Path}
+\end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Summary and Outlook}
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Literaturverzeichnis
