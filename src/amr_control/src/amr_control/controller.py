@@ -16,14 +16,14 @@ import math
 from amr_control.visualizer import Visualizer
 
 class nMPC:
-    def __init__(self, model, max_obstacles, N=20, Q=np.diag([1, 1, 0.001]), R=np.diag([0.5, 0.05]), T=0.3, penalty_weight=100):
+    def __init__(self, model, max_obstacles, N=20, Q=np.diag([1, 1, 0.001]), R=np.diag([0.5, 0.05]), T=0.3, penalty_weight=0.5):
         self.model = model
         self.n_obstacles = max_obstacles
         self.N = N
         self.Q = Q
         self.R = R
         self.T = T
-        self.v_min, self.v_max = -0.0, 0.2
+        self.v_min, self.v_max = 0.0, 0.2
         self.omega_min, self.omega_max = -0.2, 0.2
         self.viz = Visualizer()
         
@@ -82,6 +82,7 @@ class nMPC:
             st_next_euler = st + T * f_value  # Verwende T aus dem Parametervektor
             g = ca.vertcat(g, st_next - st_next_euler)
                             
+        epsilon = 0.1  # Small value to prevent division by zero or singularity
         # Obstacle avoidance constraints (hard and soft)
         for k in range(N + 1):
             for i in range(self.n_obstacles):
@@ -94,8 +95,10 @@ class nMPC:
                 g = ca.vertcat(g, hard_obs_constraint)  # Ensure the robot does not collide with the obstacle
 
                 # Soft constraint: penalty for proximity to obstacles
-                rob_diam = 0.6
-                soft_obs_cost = ca.fmax(0, (rob_diam / 2 + obs_diam / 2) - ca.sqrt((X[0, k] - obs_x) ** 2 + (X[1, k] - obs_y) ** 2))
+                rob_diam = 0.3
+                distance_to_obstacle = ca.sqrt((X[0, k] - obs_x) ** 2 + (X[1, k] - obs_y) ** 2)
+                # soft_obs_cost = ca.fmax(0, (rob_diam / 2 + obs_diam / 2) - ca.sqrt((X[0, k] - obs_x) ** 2 + (X[1, k] - obs_y) ** 2))
+                soft_obs_cost = self.penalty_weight * (1 / (distance_to_obstacle + epsilon))  # Penalize proximity based on inverse distance
                 obj += self.penalty_weight * soft_obs_cost  # Penalize proximity to obstacles
 
         # Entscheidungsvariable zu einem Spaltenvektor machen
