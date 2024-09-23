@@ -31,7 +31,7 @@
 \fancyhf{}
 \rfoot{\thepage} % Seitenzahl im rechten Fuß
 
-\title{ EVALUATING MODEL PREDICTIVE CONTROL IN DIFFERENTIAL DRIVE ROBOTICS: \\ COMPREHENSIVE LITERATURE REVIEW }
+\title{nMPC Local Planner (ändert sich noch}
 
 \author{\IEEEauthorblockN{\textbf{Student:} Eppacher Kevin, BSc. \textbf{PK:} 2310331013}
         \IEEEauthorblockN{\textbf{Peer ReviewerIn:} Schweiger Simon, MSc.}
@@ -100,17 +100,16 @@ Similarly, \cite{MPCvsTEB} performed a comparison between MPC and TEB planners. 
 \cite{ASAP} and \cite{MPCvsTEB} illustrate promising results for the MPC as local planner, especially due to the high adaptability forming the cost function for the required needs and the model adaptability, as for example omni-drive-directional-wheels. However, it is shown, that the MPC planner in combination with dynamic obstacle avoidance lack in computation time.
 
 % Paper contribution
-This work contributes to the state-of-the-art development, of a nonlinear Model Predictive Controller for a mobile robot with integrated dynamic obstacle avoidance. 
+The main objective is to design a controller that effectively addresses the challenges of dynamic obstacle avoidance, offering improved performance in real-time navigation within dynamic environments. This work contributes to the state-of-the-art development, of a nonlinear Model Predictive Controller for a mobile robot with integrated dynamic obstacle avoidance. This work proposed a nMPC local Planner, in which the nMPC is integrated with a obstacle avoidance algorithm, with the aim of reducing computation time and increasing the performance, which is evaluated by reducing the arrival time and the cross tracking error.
 
-The main objective is to design a local planner that effectively addresses the challenges of dynamic obstacle avoidance, offering improved performance in real-time navigation within dynamic environments.
+% The main objective is to design a local planner that effectively addresses the challenges of dynamic obstacle avoidance, offering improved performance in real-time navigation within dynamic environments.
 
-This work addresses these challenges by developing a nonlinear Model Predictive Controller (nMPC) for differential drive mobile robots, specifically designed for dynamic obstacle avoidance. The primary contribution is the integration of nMPC to improve real-time navigation performance in dynamic environments. Unlike conventional approaches such as DWA, the proposed nMPC effectively handles nonlinear dynamics and dynamic obstacles, offering superior prediction accuracy and responsiveness.
+% This work addresses these challenges by developing a nonlinear Model Predictive Controller (nMPC) for differential drive mobile robots, specifically designed for dynamic obstacle avoidance. The primary contribution is the integration of nMPC to improve real-time navigation performance in dynamic environments. Unlike conventional approaches such as DWA, the proposed nMPC effectively handles nonlinear dynamics and dynamic obstacles, offering superior prediction accuracy and responsiveness.
 
-This paper contributes to the field by rigorously evaluating the nMPC against both DWA and recent advancements in local planning algorithms from the past five years. The results demonstrate that the nMPC provides enhanced trajectory optimization and obstacle avoidance capabilities, filling a crucial gap in mobile robot control by addressing scenarios that existing methods have not sufficiently solved.
+% This paper contributes to the field by rigorously evaluating the nMPC against both DWA and recent advancements in local planning algorithms from the past five years. The results demonstrate that the nMPC provides enhanced trajectory optimization and obstacle avoidance capabilities, filling a crucial gap in mobile robot control by addressing scenarios that existing methods have not sufficiently solved.
 
 % Paper structure
-The rest of the paper is organized as follows: Section II discusses related work in local path planning and obstacle avoidance. Section III outlines the methodology used for our comparative evaluation. Section IV presents the results of simulations, and Section V concludes with a summary of findings and potential future research directions.
-
+The rest of the paper is organized as follows: Section II discusses related work in local path planning and obstacle avoidance. Section III outlines the methodology used. Section IV describes how the methods were implemented and evaluated. In Chapter IV, the results of the experiments are presented. In Chapter V, the results are discussed and critically reflected upon. Chapter VI summarizes this work and gives an outlook on future research.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{State-of-the-Art}
@@ -161,57 +160,56 @@ MPC computes optimal control inputs over a prediction horizon by solving an opti
 
 MPC offers smooth, optimized control over nonlinear dynamics, making it ideal for complex environments. However, it is computationally demanding, especially in real-time applications. Additionally, MPC requires highly accurate models of the robot and environment, which may not always be feasible in dynamic situations.
 
-\subsection{Move Base Flex (MBF)}
-MBF is a flexible framework in ROS that enables the integration of multiple global and local planners. It provides interfaces for different types of planners, recovery behaviors, and global path planning. The performance of MBF is dependent on the planners it integrates, and while it offers modularity, its capabilities in dynamic environments are inherited from the chosen planners (e.g., DWA, TEB).
-
-MBF provides great flexibility but may suffer from the limitations of the specific planners it incorporates, such as limited performance in dynamic environments with fast-moving obstacles.
-
-\subsection{Agile and Safe Pursuit (ASAP)}
-ASAP uses pursuit-based control combined with safety constraints, allowing the robot to track a path while maintaining agility and avoiding obstacles. The control law minimizes the error between the robot’s current position and the pursuit point \(P(t)\) on the path, as defined in Equation \eqref{eq:asap_control}:
-
-\begin{equation}
-\label{eq:asap_control}
-u(t) = \text{argmin} \| x(t) - P(t) \|
-\end{equation}
-
-With the safety constraint shown in Equation \eqref{eq:asap_safety}:
-
-\begin{equation}
-\label{eq:asap_safety}
-\| P(t) - x_{\text{obs}}(t) \| \geq d_{\text{safe}}
-\end{equation}
-
-ASAP provides fast and agile movement while maintaining safety, but it struggles with complex nonlinear dynamics and requires careful tuning of the safety constraints to avoid overly conservative behavior.
-
-\subsection{Reinforcement Learning (RL)-based Planners}
-In recent years, RL-based planners have gained significant attention due to their ability to learn optimal behaviors in dynamic and complex environments. These planners do not rely on explicit models but instead learn from trial and error by interacting with the environment. RL-based planners can adapt to new environments, making them highly effective for dynamic obstacle avoidance.
-
-However, RL-based planners face challenges in real-time applications due to the extensive training time required and the need for vast amounts of data. Additionally, their performance can be inconsistent if the training environment does not closely resemble the real-world application. Despite these challenges, RL-based planners show promise in handling complex scenarios where traditional model-based planners fall short.
-
-\subsection{Advantages of Nonlinear Model Predictive Control (nMPC)}
-nMPC addresses the shortcomings of traditional local planners by predicting future obstacle movements and directly incorporating the nonlinear dynamics of the robot. It optimizes the control inputs over a finite prediction horizon, ensuring that the robot can navigate dynamically changing environments with greater efficiency and precision.
-
-Compared to DWA, TEB, MPC, and RL-based planners, nMPC offers improved handling of dynamic obstacles by continuously adjusting the robot's trajectory in real-time, optimizing for both safety and performance. It also handles nonlinear dynamics more effectively, making it a robust solution for highly dynamic environments.
+Compared to DWA and TEB, MPC offers improved handling of dynamic obstacles by continuously adjusting the robot's trajectory in real-time, optimizing for both safety and performance. It also handles nonlinear dynamics more effectively, making it a robust solution for highly dynamic environments.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Methods}
 
+This section describes the methodology applied in this work, focusing on the integration of the trajectory planner, nMPC, and the Obstacle Detection Algorithm, culminating in the nMPC local planner. Figure \ref{fig:nMPC_Local_Planner_Diagram_2} illustrates the individual components of the nMPC local planner. The main elements are the trajectory planner, nMPC, and optionally, the obstacle detection algorithm, which will be explained in more detail later.
+
+The trajectory planner receives the global path from MoveBase. It processes the global plan into a local plan, taking into account the number of predictions and the prediction horizon length specified by the nMPC. After the nMPC receives the reference trajectory, the robot’s current pose, and the target state, the optimizer of the nMPC calculates the optimal control input and sends it back to the trajectory planner. Depending on whether the differential drive mobile robot (DDMR) has reached its target or not, the trajectory planner then sends the optimal control input \(\mathbf{u} = \begin{bmatrix} v & \omega \end{bmatrix}^\top\)
+
+The robot's absolute position is determined using AMCL, which helps eliminate cumulative slip and drift errors. However, a map must be created in advance. Based on the scan data from the LiDAR, the DDMR can detect obstacles. The Obstacle Detection Node filters the LiDAR data to define a search cone, reducing unnecessary computational load on the nMPC. It then sends the positions of the obstacles, along with the predefined safety radius of the obstacles, to the trajectory planner, which passes this information to the nMPC for further processing.
+
 \begin{figure}[!h]
     \centering
     \includegraphics[width=1\columnwidth]{images/nMPC_Local_Planner_Diagram_2.png}
-    \caption{ }
+    \caption{nMPC-Local-Planner Block Diagram }
     \label{fig:nMPC_Local_Planner_Diagram_2}
 \end{figure}
 
 
 \subsection{nMPC}
 
+The nMPC is responsible for planning a path based on the current pose, the target pose, and the reference trajectory, using an optimizer that not only satisfies the kinematics of a differential drive mobile robot (DDMR) but also avoids obstacles and respects limitations on control inputs and states.Figure \ref{fig:MPC_Blockdiagram_Implementation} illustrates the components of an MPC.
+
 \begin{figure}[!h]
     \centering
     \includegraphics[width=1\columnwidth]{images/MPC_Blockdiagram_Implementation.png}
-    \caption{Blockdiagram of nMPC for future Implementation }
+    \caption{Detailed Blockdiagram of nMPC \cite{Effects_of_roll_dynamics_for_car_stability_control_by_laguerre_functions}}
     \label{fig:MPC_Blockdiagram_Implementation}
 \end{figure}
+
+First, the Optimal Control Problem (OCP) must be converted into a Nonlinear Programming Problem (NLP) using the multiple shooting discretization method. The goal is to minimize the cost function in Equation \ref{eq:L_function}, which consists of the states and control actions for all predictions.
+
+\begin{equation}
+\label{eq:L_function}
+\begin{aligned}
+\min_{\vec{u}_k} J(\vec{x}_k, \vec{u}_k) = J_{\text{obs}} + \phi(\vec{x}(N)) 
++ &\\ \sum_{k}^{k+N-1}
+(\vec{x}_{R,k} - \vec{x}_{\text{ref},k})^T Q (\vec{x}_{R,k} - \vec{x}_{\text{ref},k})&+ \vec{u}_k^T R \vec{u}_k
+\end{aligned}
+\end{equation}
+
+
+\begin{align}
+\text{subject to: } \quad \vec{x}(k+1) &= f(\vec{x}(k), \vec{u}(k)), \\
+\vec{x}(0) &= \vec{x}_0, \\
+\vec{u}(k) &\in U, \quad \forall k \in [0, N-1], \\
+\vec{x}(k) &\in X, \quad \forall k \in [0, N].
+\end{align}
+
+The state vector of the robot is described by Equation \ref{eq:state_vector} , and the control vector is described by Equation \ref{eq:control_vector}. 
 
 \begin{equation}\label{eq:state_vector}
     \mathbf{x} = \begin{bmatrix} x & y & \theta \end{bmatrix}^T
@@ -223,28 +221,17 @@ Compared to DWA, TEB, MPC, and RL-based planners, nMPC offers improved handling 
 \end{bmatrix}^T
 \end{equation}
 
-
-\begin{equation}
-\label{eq:L_function}
-\begin{aligned}
-\min_{\vec{u}_k} J(\vec{x}_k, \vec{u}_k) = \phi(\vec{x}(N)) + \sum_{k}^{k+N-1} &
-(\vec{x}_{R,k} - \vec{x}_{\text{ref},k})^T Q (\vec{x}_{R,k} - \vec{x}_{\text{ref},k}) \\
-&+ \vec{u}_k^T R \vec{u}_k
-\end{aligned}
-\end{equation}
-
-\begin{align}
-\text{subject to: } \quad \vec{x}(k+1) &= f(\vec{x}(k), \vec{u}(k)), \\
-\vec{x}(0) &= \vec{x}_0, \\
-\vec{u}(k) &\in U, \quad \forall k \in [0, N-1], \\
-\vec{x}(k) &\in X, \quad \forall k \in [0, N].
-\end{align}
-
+The equality constraints of the cost function ensure that the robot adheres to its dynamics. The inequality constraints enforce the limits on control inputs and guarantee that the robot avoids obstacles, as expressed in Equation \ref{eq:collision_condition}.
 
 \begin{equation}
 \label{eq:phi_definition}
 \phi(\vec{x}(N)) = \frac{1}{2} \vec{x}_N^T S \vec{x}_N
 \end{equation}
+
+\begin{equation}
+J_{\text{obs}} = \sum_{k=0}^{N} \sum_{i=1}^{n_{\text{obs}}} \frac{w_{\text{pen}}}{\sqrt{(x_k - x_{\text{obs},i})^2 + (y_k - y_{\text{obs},i})^2} + \epsilon}
+\end{equation}
+
 
 \begin{equation}
 \label{eq:u_constraints}
@@ -372,30 +359,30 @@ The experiments ran inside a Docker container, which utilized up to 4.808 GB of 
 
 \begin{figure}[!h]
     \centering
-    \includegraphics[width=1\columnwidth]{images/nMPC_15_vs_DWA_10_vs_TEB_8_Path.png}
+    \includegraphics[width=1\columnwidth]{images/nMPC_22_vs_DWA_10_vs_TEB_8_Path.png}
     \caption{ }
-    \label{fig:nMPC_16_vs_DWA_12_vs_TEB_6_Path}
+    \label{fig:nMPC_22_vs_DWA_12_vs_TEB_6_Path}
 \end{figure}
 
 \begin{figure}[!h]
     \centering
-    \includegraphics[width=1\columnwidth]{images/nMPC_15_vs_DWA_10_vs_TEB_8.png}
+    \includegraphics[width=1\columnwidth]{images/nMPC_22_vs_DWA_10_vs_TEB_8.png}
     \caption{ }
-    \label{fig:nMPC_16_vs_DWA_12_vs_TEB_6_Path}
+    \label{fig:nMPC_22_vs_DWA_12_vs_TEB_6_Path}
 \end{figure}
 
 \begin{figure}[!h]
     \centering
-    \includegraphics[width=1\columnwidth]{images/nMPC_16_vs_DWA_12_vs_TEB_9_Path.png}
+    \includegraphics[width=1\columnwidth]{images/nMPC_23_vs_DWA_12_vs_TEB_9_Path.png}
     \caption{ }
-    \label{fig:nMPC_16_vs_DWA_12_vs_TEB_6_Path}
+    \label{fig:nMPC_23_vs_DWA_12_vs_TEB_6_Path}
 \end{figure}
 
 \begin{figure}[!h]
     \centering
-    \includegraphics[width=1\columnwidth]{images/nMPC_16_vs_DWA_12_vs_TEB_9.png}
+    \includegraphics[width=1\columnwidth]{images/nMPC_23_vs_DWA_12_vs_TEB_9.png}
     \caption{ }
-    \label{fig:nMPC_16_vs_DWA_12_vs_TEB_6_Path}
+    \label{fig:nMPC_23_vs_DWA_12_vs_TEB_6_Path}
 \end{figure}
 
 
