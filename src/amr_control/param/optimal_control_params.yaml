@@ -4,7 +4,7 @@ nmpc_controller:
   R: [0.5, 0.05]  # Gewichtungsmatrix R
   S: [100, 100, 5]  # Gewichtungsmatrix S
   v_min: 0  # Minimale Geschwindigkeit
-  v_max: 0.2  # Maximale Geschwindigkeit
+  v_max: 0.22  # Maximale Geschwindigkeit
   omega_min: -0.5  # Minimale Winkelgeschwindigkeit
   omega_max: 0.5  # Maximale Winkelgeschwindigkeit
   max_obstacles: 3  # Maximale Anzahl an Hindernissen

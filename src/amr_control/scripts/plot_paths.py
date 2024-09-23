@@ -10,17 +10,17 @@ import roslib
 
 # ------------------------- CONFIGURABLE PARAMETERS -------------------------
 # ROSBAG file paths
-# bag_nmpc_filename = 'recorded_data_nMPC_15.bag'
+# bag_nmpc_filename = 'recorded_data_nMPC_22.bag'
 # bag_dwa_filename = 'recorded_data_DWA_10.bag'
 # bag_teb_filename = 'recorded_data_TEB_8.bag'
 
-# bag_nmpc_filename = 'recorded_data_nMPC_19.bag'
-# bag_dwa_filename = 'recorded_data_DWA_12.bag'
-# bag_teb_filename = 'recorded_data_TEB_9.bag'
+bag_nmpc_filename = 'recorded_data_nMPC_23.bag'
+bag_dwa_filename = 'recorded_data_DWA_12.bag'
+bag_teb_filename = 'recorded_data_TEB_9.bag'
 
-bag_nmpc_filename = 'recorded_data_nMPC_18.bag'
-bag_dwa_filename = 'recorded_data_DWA_15.bag'
-bag_teb_filename = 'recorded_data_TEB_10.bag'
+# bag_nmpc_filename = 'recorded_data_nMPC_18.bag'
+# bag_dwa_filename = 'recorded_data_DWA_15.bag'
+# bag_teb_filename = 'recorded_data_TEB_10.bag'
 
 
 # ROS topics for cmd_vel (used by different planners)
