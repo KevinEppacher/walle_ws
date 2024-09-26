@@ -93,13 +93,13 @@ def process_path_data(path_msg):
         path_y.append(pose.pose.position.y)
     return path_x, path_y
 
-def calculate_cross_tracking_error(global_path, local_path):
-    """Calculate the cross-tracking error between the global path and the local path."""
-    errors = []
-    for lx, ly in zip(local_path[0], local_path[1]):
-        min_distance = min([np.sqrt((lx - gx)**2 + (ly - gy)**2) for gx, gy in zip(global_path[0], global_path[1])])
-        errors.append(min_distance)
-    return errors
+# def calculate_cross_tracking_error(global_path, local_path):
+#     """Calculate the cross-tracking error between the global path and the local path."""
+#     errors = []
+#     for lx, ly in zip(local_path[0], local_path[1]):
+#         min_distance = min([np.sqrt((lx - gx)**2 + (ly - gy)**2) for gx, gy in zip(global_path[0], global_path[1])])
+#         errors.append(min_distance)
+#     return errors
 
 def draw_rotated_rectangle(x, y, width, height, angle, ax):
     """Draw a rotated rectangle."""
