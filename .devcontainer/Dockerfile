@@ -35,10 +35,12 @@ RUN sudo apt-get install -y ros-noetic-dwa-local-planner
 
 RUN sudo apt-get install -y ros-noetic-gmapping
 
+RUN sudo apt-get update && sudo apt-get install -y ros-noetic-map-server
+
 RUN sudo apt-get install -y ros-noetic-teb-local-planner
 
 RUN sudo apt-get install -y ros-noetic-turtlebot3* ros-noetic-turtlebot3 \
-    && echo "export TURTLEBOT3_MODEL=waffle" >> ~/.bashrc
+    && echo "export TURTLEBOT3_MODEL=waffle_pi" >> ~/.bashrc
 
 # Install Git
 RUN sudo apt update

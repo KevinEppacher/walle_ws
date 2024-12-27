@@ -13,8 +13,8 @@ nmpc_controller:
   epsilon: 0.1  # Epsilon für die Hindernisvermeidung
 
 trajectory_planner:
-  # init_position: [0.0, 0.0, 0.0]  # Initiale Position
-  init_position: [4.5, -1.0, 1.57]  # Initiale Position
+  init_position: [0.0, 0.0, 0.0]  # Initiale Position
+  # init_position: [4.5, -1.0, 1.57]  # Initiale Position
   controller_loop_rate: 100  # Loop Rate in Hz
   feed_forward_scaling: 0.8 # Feed-Forward-Skalierung
   prediction_distance: 2 # Vorhersagedistanz in Metern

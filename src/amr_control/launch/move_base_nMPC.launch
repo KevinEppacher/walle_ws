@@ -1,5 +1,6 @@
 <?xml version="1.0" ?>
 <launch>
+
   <!-- This launch file is used to launch the move_base node, which is responsible for controlling the robot's movement.
   It takes several arguments and sets various parameters for the move_base node. -->
 

@@ -12,6 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
 )
 
+catkin_python_setup()
+
 ## Füge die generierten dynamischen Rekonfigurationsoptionen hinzu
 # ACHTUNG: Diese Zeile muss vor dem catkin_package-Aufruf kommen!
 generate_dynamic_reconfigure_options(
@@ -28,112 +30,41 @@ include_directories(
 )
 
 
+
 ############################################################
-# CMakelist for optimal_control node
+# Installiere Python-Module
 ############################################################
 
-# Install Python scripts
+# Kopiere das gesamte amr_control Python-Paket in den Python-Installationspfad
+install(
+  DIRECTORY src/amr_control/
+  DESTINATION ${CATKIN_PACKAGE_PYTHON_DESTINATION}
+  FILES_MATCHING PATTERN "*.py"
+)
+
+############################################################
+# Installiere Python-Skripte (Executable Nodes)
+############################################################
+
 catkin_install_python(PROGRAMS
-  src/amr_control/optimal_control.py 
+  src/amr_control/optimal_control.py
+  src/amr_control/obstacle_detection.py
+  src/amr_control/trajectory_interpolation_test.py
+  scripts/move_base_execution.py
+  scripts/path_recorder.py
+  scripts/move_urdf_box.py
+  scripts/plot_paths.py
 DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 ############################################################
-# CMakelist for casadi_example node
+# Installiere Tutorials
 ############################################################
 
-# Install Python scripts
 catkin_install_python(PROGRAMS
   src/amr_control/tutorials/single_shooting_nmpc_tutorial.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-############################################################
-# CMakelist for casadi_example node
-############################################################
-
-# Install Python scripts
-catkin_install_python(PROGRAMS
   src/amr_control/tutorials/multiple_shooting_nmpc_tutorial.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-############################################################
-# CMakelist for multiple_shooting_nmpc_obstacle_avoidance_tutorial node
-############################################################
-
-# Install Python scripts
-catkin_install_python(PROGRAMS
   src/amr_control/tutorials/multiple_shooting_nmpc_obstacle_avoidance_tutorial.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-############################################################
-# CMakelist for multiple_shooting_nmpc_obstacle_avoidance_refrence_tracking node
-############################################################
-
-# Install Python scripts
-catkin_install_python(PROGRAMS
   src/amr_control/tutorials/multiple_shooting_nmpc_obstacle_avoidance_refrence_tracking.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-############################################################
-# CMakelist for obstacle_detection node
-############################################################
-
-# Install Python scripts
-catkin_install_python(PROGRAMS
-  src/amr_control/obstacle_detection.py 
-DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-############################################################
-# CMakelist for trajectory_interpolation_test node
-############################################################
-
-# Install Python scripts
-catkin_install_python(PROGRAMS
-  src/amr_control/trajectory_interpolation_test.py 
-DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-############################################################
-# CMakelist for move_base_execution node
-############################################################
-
-# Install Python scripts
-catkin_install_python(PROGRAMS
-  scripts/move_base_execution.py 
-DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-############################################################
-# CMakelist for path_recorder node
-############################################################
-
-# Install Python scripts
-catkin_install_python(PROGRAMS
-  scripts/path_recorder.py 
-DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-############################################################
-# CMakelist for move_urdf_box node
-############################################################
-
-# Install Python scripts
-catkin_install_python(PROGRAMS
-  scripts/move_urdf_box.py 
-DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-############################################################
-# CMakelist for plot_paths node
-############################################################
-
-# Install Python scripts
-catkin_install_python(PROGRAMS
-  scripts/plot_paths.py 
 DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

@@ -1,0 +1,5 @@
+<launch>
+    <!-- Start map_server -->
+    <node pkg="map_server" name="map_server" type="map_server" args="$(find amr_control)/maps/experimental_room4_map.yaml"/>
+    
+</launch>
