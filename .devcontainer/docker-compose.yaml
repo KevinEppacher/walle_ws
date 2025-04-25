@@ -1,10 +1,10 @@
 services:
   cpu:
-    image: ros2/control
+    image: ros/control
     build:
       context: ./
       dockerfile: Dockerfile
-    container_name: ros2_control
+    container_name: ros_control
     privileged: true
     network_mode: host
     command: /bin/bash
@@ -17,11 +17,11 @@ services:
       QT_X11_NO_MITSHM: 1
       DISPLAY: $DISPLAY
   gpu:
-    image: ros2/control
+    image: ros/control
     build:
       context: ./
       dockerfile: Dockerfile
-    container_name: ros2_control
+    container_name: ros_control
     privileged: true
     network_mode: host
     command: /bin/bash
