@@ -1,0 +1,44 @@
+services:
+  cpu:
+    image: ros2/control
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: ros2_control
+    privileged: true
+    network_mode: host
+    command: /bin/bash
+    tty: true
+    volumes:
+      - ../../walle_ws:/app
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - $XAUTHORITY:/root/.Xauthority
+    environment:
+      QT_X11_NO_MITSHM: 1
+      DISPLAY: $DISPLAY
+  gpu:
+    image: ros2/control
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: ros2_control
+    privileged: true
+    network_mode: host
+    command: /bin/bash
+    tty: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - ../../walle_ws:/app
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - $XAUTHORITY:/root/.Xauthority
+    environment:
+      QT_X11_NO_MITSHM: 1
+      DISPLAY: $DISPLAY
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: all

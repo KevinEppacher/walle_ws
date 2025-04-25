@@ -26,6 +26,8 @@ from amr_control.trajectory_planner import TrajectoryPlanner
 from amr_control.obstacle import Obstacle
 
 def main():
+    print("Starting trajectory planner node...")
+
     try:
         TrajectoryPlanner()
         rospy.spin()
