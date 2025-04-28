@@ -52,3 +52,6 @@ qtcreator-*
 # Catkin custom files
 CATKIN_IGNORE
 
+
+**/amr_control/docs/
+**/amr_control/videos/

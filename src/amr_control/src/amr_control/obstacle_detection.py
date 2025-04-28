@@ -37,7 +37,7 @@ class ObstacleDetection:
         lidar_ranges = np.array(data.ranges)
         lidar_angles = np.linspace(data.angle_min, data.angle_max, len(lidar_ranges))
 
-        # Berechne den Suchwinkel: +/- der Hälfte des angegebenen Suchwinkels
+        # Calculate the search angle: +/- half of the specified search angle
         search_angle_half = np.radians(self.search_angle / 2)
 
         # Filter out obstacles within the search radius and within the desired angle ranges
@@ -87,7 +87,7 @@ class ObstacleDetection:
         obstacles_msg = Float32MultiArray()
         max_range = int(self.search_radius * 100)
         
-        # Hole die Transformation vom Roboter (/base_footprint) zum globalen Frame (/map)
+        # Retrieve the transformation from the robot (/base_footprint) to the global frame (/map)
         try:
             (trans, rot) = self.tf_listener.lookupTransform('/map', '/base_footprint', rospy.Time(0))
             robot_x, robot_y = trans[0], trans[1]
@@ -96,7 +96,7 @@ class ObstacleDetection:
             rospy.logwarn("Unable to get robot pose from TF")
             return
 
-        # Berechne die Entfernung und den Winkel relativ zur Bewegungsrichtung für jede Ecke
+        # Calculate the distance and angle relative to the direction of motion for each corner
         distances = []
         for corner in corners:
             x, y = corner.ravel()
